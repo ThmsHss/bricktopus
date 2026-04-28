@@ -1,10 +1,11 @@
 from .cache import create_db_and_tables, get_session
 from .core import create_app
 from .router import router
+from .routes.plan_my_day import router as plan_my_day_router
 from .routes.sources import router as sources_router
 from .services.attribution import seed_aliases
 
-app = create_app(routers=[router, sources_router])
+app = create_app(routers=[router, sources_router, plan_my_day_router])
 
 
 @app.on_event("startup")

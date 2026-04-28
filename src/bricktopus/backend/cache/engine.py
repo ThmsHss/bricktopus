@@ -49,7 +49,14 @@ def create_db_and_tables() -> None:
     """Create any registered tables. Safe to call repeatedly (no-op if exist)."""
     # Import side-effect: ensures every cache.* module has registered its
     # SQLModel tables on the metadata before create_all is called.
-    from . import ontology, sources  # noqa: F401
+    # `ontology` lives on the parallel ontology branch — tolerate its
+    # absence so this module works on branches that don't have it yet.
+    from . import sources  # noqa: F401
+
+    try:
+        from . import ontology  # noqa: F401
+    except ImportError:
+        pass
 
     SQLModel.metadata.create_all(_get_engine())
 
