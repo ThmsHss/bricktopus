@@ -4,18 +4,40 @@ interface LogoProps {
   to?: string;
   className?: string;
   showText?: boolean;
+  size?: "sm" | "md" | "lg";
 }
 
-export function Logo({ to = "/", className = "", showText = true }: LogoProps) {
+const sizeMap = {
+  sm: "h-7 w-7",
+  md: "h-9 w-9",
+  lg: "h-12 w-12",
+};
+
+const textSizeMap = {
+  sm: "text-base",
+  md: "text-lg",
+  lg: "text-xl",
+};
+
+export function Logo({
+  to = "/",
+  className = "",
+  showText = true,
+  size = "md",
+}: LogoProps) {
   const content = (
-    <div className={`flex items-center gap-2 ${className}`}>
+    <div className={`flex items-center gap-2.5 ${className}`}>
       <img
-        src="/logo.svg"
-        alt="logo"
-        className="h-6 w-6 text-primary border border-primary rounded-sm"
+        src="/bricktopus.png"
+        alt="Bricktopus"
+        className={`${sizeMap[size]} object-contain drop-shadow-sm`}
       />
       {showText && (
-        <span className="font-semibold text-lg">{__APP_NAME__}</span>
+        <span
+          className={`font-serif tracking-tight leading-none ${textSizeMap[size]}`}
+        >
+          Bricktopus
+        </span>
       )}
     </div>
   );
