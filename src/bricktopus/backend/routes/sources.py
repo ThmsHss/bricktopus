@@ -276,6 +276,7 @@ def trigger_sync_calendar(
     session: session_dependency,
     days_back: int = 365,
     days_forward: int = 30,
+    max_results: int = 5000,
 ) -> SyncResultOut:
     now = datetime.now(tz=timezone.utc)
     res = sync_calendar(
@@ -283,6 +284,7 @@ def trigger_sync_calendar(
         client=GoogleCalendarClient(),
         starts_after=now - timedelta(days=days_back),
         starts_before=now + timedelta(days=days_forward),
+        max_results=max_results,
     )
     return SyncResultOut(
         source="google_calendar",

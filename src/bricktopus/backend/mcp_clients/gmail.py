@@ -1,24 +1,34 @@
-"""Gmail wrapper. Mock-backed until the claude.ai Gmail MCP is authenticated."""
+"""Gmail wrapper. ADC-backed when gcloud credentials are available."""
 
 from __future__ import annotations
 
+import logging
 import os
+import re
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
+from ..services import google_adc
 from .base import EmailThreadDTO, SourceMode, SourceStatus
+
+logger = logging.getLogger(__name__)
 
 
 def _has_oauth() -> bool:
-    return os.environ.get("BRICKTOPUS_GMAIL_AUTHENTICATED") == "1"
+    if os.environ.get("BRICKTOPUS_GMAIL_FORCE_MOCK") == "1":
+        return False
+    return google_adc.adc_present()
 
 
 class GmailClient:
     name = "gmail"
 
     def __init__(self, *, user_email: str | None = None) -> None:
-        self.user_email = user_email or os.environ.get(
-            "BRICKTOPUS_USER_EMAIL", "thomas.hass@databricks.com"
+        self.user_email = (
+            user_email
+            or google_adc.adc_email()
+            or os.environ.get("BRICKTOPUS_USER_EMAIL")
+            or "thomas.hass@databricks.com"
         )
 
     def status(self) -> SourceStatus:
@@ -28,9 +38,9 @@ class GmailClient:
             mode=SourceMode.LIVE if live else SourceMode.MOCK,
             authenticated=live,
             detail=(
-                "Gmail MCP authenticated."
+                f"Live: gcloud ADC for {self.user_email}."
                 if live
-                else "Gmail MCP not authenticated yet — using mock fixtures."
+                else "Run `gcloud auth application-default login` to switch to live mode."
             ),
         )
 
@@ -42,8 +52,11 @@ class GmailClient:
         with_email: Optional[str] = None,
     ) -> list[EmailThreadDTO]:
         if _has_oauth():
-            raise NotImplementedError(
-                "Gmail MCP live calls not yet wired — implement once OAuth completes."
+            return _live_threads(
+                user_email=self.user_email,
+                modified_after=modified_after,
+                with_email=with_email,
+                max_results=max_results,
             )
         return _mock_threads(
             user_email=self.user_email,
@@ -51,6 +64,137 @@ class GmailClient:
             with_email=with_email,
             max_results=max_results,
         )
+
+
+# ---------- Live (Application Default Credentials) ----------
+
+_EMAIL_RE = re.compile(r"<([^>]+)>")
+
+
+def _live_threads(
+    *,
+    user_email: str,
+    modified_after: datetime,
+    with_email: Optional[str],
+    max_results: int,
+) -> list[EmailThreadDTO]:
+    service = google_adc.build_service("gmail", "v1")
+
+    after_epoch = int(modified_after.timestamp())
+    query_parts = [f"after:{after_epoch}"]
+    if with_email:
+        query_parts.append(f"({{from:{with_email} OR to:{with_email}}})")
+    query = " ".join(query_parts)
+
+    out: list[EmailThreadDTO] = []
+    page_token: Optional[str] = None
+    remaining = max_results
+
+    while remaining > 0:
+        resp = (
+            service.users()
+            .threads()
+            .list(
+                userId="me",
+                q=query,
+                maxResults=min(remaining, 100),
+                pageToken=page_token,
+            )
+            .execute()
+        )
+        for thread_meta in resp.get("threads", []):
+            tid = thread_meta["id"]
+            try:
+                detail = (
+                    service.users()
+                    .threads()
+                    .get(userId="me", id=tid, format="metadata",
+                         metadataHeaders=["Subject", "From", "To", "Cc", "Date"])
+                    .execute()
+                )
+            except Exception as exc:  # pragma: no cover
+                logger.warning("Could not fetch gmail thread %s: %s", tid, exc)
+                continue
+            dto = _parse_thread(detail, user_email=user_email)
+            if dto is not None:
+                out.append(dto)
+        page_token = resp.get("nextPageToken")
+        if not page_token:
+            break
+        remaining = max_results - len(out)
+
+    return out
+
+
+def _parse_thread(detail: dict, *, user_email: str) -> Optional[EmailThreadDTO]:
+    messages = detail.get("messages") or []
+    if not messages:
+        return None
+
+    first = messages[0]
+    last = messages[-1]
+    headers = {h["name"]: h["value"] for h in (first.get("payload") or {}).get("headers", [])}
+    last_headers = {h["name"]: h["value"] for h in (last.get("payload") or {}).get("headers", [])}
+
+    subject = headers.get("Subject") or "(no subject)"
+
+    participants: set[str] = set()
+    for m in messages:
+        for h in (m.get("payload") or {}).get("headers", []):
+            if h["name"] in {"From", "To", "Cc"}:
+                for raw in str(h["value"]).split(","):
+                    email = _extract_email(raw)
+                    if email:
+                        participants.add(email.lower())
+
+    label_ids: set[str] = set()
+    for m in messages:
+        for label in m.get("labelIds") or []:
+            label_ids.add(label)
+
+    last_at = _parse_internal_date(last.get("internalDate")) or datetime.now(
+        tz=timezone.utc
+    )
+    if "Date" in last_headers:
+        try:
+            from email.utils import parsedate_to_datetime
+
+            parsed = parsedate_to_datetime(last_headers["Date"])
+            if parsed.tzinfo is None:
+                parsed = parsed.replace(tzinfo=timezone.utc)
+            last_at = parsed
+        except (TypeError, ValueError):
+            pass
+
+    return EmailThreadDTO(
+        id=detail["id"],
+        user_email=user_email,
+        subject=subject,
+        snippet=first.get("snippet"),
+        participants=sorted(participants),
+        last_message_at=last_at,
+        message_count=len(messages),
+        label_ids=sorted(label_ids),
+    )
+
+
+def _extract_email(raw: str) -> Optional[str]:
+    raw = raw.strip()
+    if not raw:
+        return None
+    match = _EMAIL_RE.search(raw)
+    if match:
+        return match.group(1).strip()
+    return raw if "@" in raw else None
+
+
+def _parse_internal_date(value: Optional[str]) -> Optional[datetime]:
+    if not value:
+        return None
+    try:
+        return datetime.fromtimestamp(int(value) / 1000, tz=timezone.utc)
+    except (TypeError, ValueError):
+        return None
 
 
 def _mock_threads(

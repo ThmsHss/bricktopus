@@ -32,6 +32,10 @@ Bucket = Literal["week", "month"]
 # represent self-organized blocks.
 ACCEPTED_RESPONSES = frozenset({"accepted", "needsAction", None})
 
+# Cap any single event at 4 hours. Real meetings rarely run that long;
+# anything bigger is usually a focus block or a misused calendar entry.
+MAX_MINUTES_PER_EVENT = 240
+
 INTERNAL_CUSTOMER_ID = "internal"
 INTERNAL_CUSTOMER_NAME = "Internal · Databricks"
 
@@ -92,6 +96,7 @@ def _customer_name_lookup(session) -> dict[str, str]:
         # First seen wins — aliases for the same customer share names anyway.
         out.setdefault(alias.customer_id, alias.customer_name)
     out.setdefault(INTERNAL_CUSTOMER_ID, INTERNAL_CUSTOMER_NAME)
+    out.setdefault("other", "Other / Unattributed")
     return out
 
 
@@ -138,7 +143,10 @@ def get_time_spent(
     end: str | None = Query(default=None),
 ) -> TimeSpentResponse:
     today = datetime.now(tz=timezone.utc).date()
-    default_start = date(today.year, 1, 1)
+    # Default to a recent window so the chart isn't dominated by Jan when
+    # we're in late April. Week view → last 12 weeks; Month view → last 6 months.
+    default_back_days = 12 * 7 if bucket == "week" else 6 * 30
+    default_start = today - timedelta(days=default_back_days)
     range_start = _parse_iso_date(start, default=default_start)
     range_end = _parse_iso_date(end, default=today)
 
@@ -162,37 +170,80 @@ def get_time_spent(
 
     name_for = _customer_name_lookup(session)
 
-    # bucket_start (date) -> customer_id -> Aggregate
-    grouped: dict[date, dict[str, _Aggregate]] = defaultdict(
-        lambda: defaultdict(_Aggregate)
-    )
-    totals_customer: dict[str, int] = defaultdict(int)
-    totals_type: dict[str, int] = defaultdict(int)
-    grand_total = 0
+    # First pass: filter + collect raw intervals per (bucket, customer).
+    # We'll union them later so two overlapping meetings on the same
+    # day don't double-count.
+    raw_intervals: dict[
+        tuple[date, str], list[tuple[datetime, datetime, str]]
+    ] = defaultdict(list)
     counted_events = 0
 
     bucketize = _week_start if bucket == "week" else _month_start
 
     for evt in events:
-        if evt.customer_id is None:
-            continue
         if evt.duration_minutes <= 0:
             continue
         if evt.response_status not in ACCEPTED_RESPONSES:
             continue
+        # All-day events are usually OOO / vacation / travel markers — they'd
+        # add 24h per day if counted, blowing the weekly total past 168h.
+        if evt.is_all_day:
+            continue
 
-        bucket_start = bucketize(evt.starts_at)
-        meeting_type = evt.meeting_type or "other"
-        cust_entry = grouped[bucket_start][evt.customer_id]
-        cust_entry.minutes += evt.duration_minutes
-        cust_entry.by_type[meeting_type] = (
-            cust_entry.by_type.get(meeting_type, 0) + evt.duration_minutes
+        # Cap each event at MAX_MINUTES_PER_EVENT so a stray 12-hour block
+        # doesn't dominate the chart.
+        end = evt.starts_at + timedelta(
+            minutes=min(evt.duration_minutes, MAX_MINUTES_PER_EVENT)
         )
 
-        totals_customer[evt.customer_id] += evt.duration_minutes
-        totals_type[meeting_type] += evt.duration_minutes
-        grand_total += evt.duration_minutes
+        customer_id = evt.customer_id or "other"
+        bucket_start = bucketize(evt.starts_at)
+        meeting_type = evt.meeting_type or "other"
+        raw_intervals[(bucket_start, customer_id)].append(
+            (evt.starts_at, end, meeting_type)
+        )
         counted_events += 1
+
+    # Per-customer per-bucket: union overlapping intervals so two
+    # back-to-back meetings on the same call don't double-count.
+    grouped: dict[date, dict[str, _Aggregate]] = defaultdict(
+        lambda: defaultdict(_Aggregate)
+    )
+    totals_customer: dict[str, int] = defaultdict(int)
+    totals_type: dict[str, int] = defaultdict(int)
+
+    for (bucket_start, customer_id), intervals in raw_intervals.items():
+        merged = _merge_intervals(intervals)
+        cust_entry = grouped[bucket_start][customer_id]
+        for start, end, mt in merged:
+            minutes = max(0, int((end - start).total_seconds() // 60))
+            if minutes <= 0:
+                continue
+            cust_entry.minutes += minutes
+            cust_entry.by_type[mt] = (
+                cust_entry.by_type.get(mt, 0) + minutes
+            )
+            totals_customer[customer_id] += minutes
+            totals_type[mt] += minutes
+
+    # Headline / per-bucket totals: global union of all intervals (across
+    # customers) so cross-customer overlap (rare but possible) doesn't
+    # exceed reality. This is the "actual time" number; per-customer
+    # totals above remain "scheduled time" so the breakdown still adds up
+    # in the chart.
+    bucket_actual: dict[date, int] = defaultdict(int)
+    grand_total = 0
+    all_by_bucket: dict[date, list[tuple[datetime, datetime, str]]] = defaultdict(list)
+    for (bucket_start, _customer_id), intervals in raw_intervals.items():
+        all_by_bucket[bucket_start].extend(intervals)
+    for bucket_start, intervals in all_by_bucket.items():
+        merged = _merge_intervals(intervals)
+        minutes = sum(
+            max(0, int((end - start).total_seconds() // 60))
+            for start, end, _ in merged
+        )
+        bucket_actual[bucket_start] = minutes
+        grand_total += minutes
 
     buckets_out: list[TimeBucket] = []
     for bucket_start in sorted(grouped.keys()):
@@ -210,7 +261,8 @@ def get_time_spent(
                 reverse=True,
             )
         ]
-        total_minutes = sum(c.minutes for c in breakdown)
+        # Bucket total = global union (deduplicates cross-customer overlap).
+        total_minutes = bucket_actual.get(bucket_start, 0)
         buckets_out.append(
             TimeBucket(
                 bucket_start=bucket_start.isoformat(),
@@ -239,6 +291,33 @@ def get_time_spent(
         total_minutes=grand_total,
         event_count=counted_events,
     )
+
+
+def _merge_intervals(
+    intervals: list[tuple[datetime, datetime, str]],
+) -> list[tuple[datetime, datetime, str]]:
+    """Union overlapping (start, end, meeting_type) intervals.
+
+    Within a merged span the meeting_type of the earliest-starting interval
+    wins. This is a deliberate simplification: two overlapping meetings of
+    different types within one customer are reported as the type that
+    started first; the user's "actual" minutes are still correct.
+    """
+    if not intervals:
+        return []
+    sorted_iv = sorted(intervals, key=lambda x: (x[0], x[1]))
+    merged: list[tuple[datetime, datetime, str]] = []
+    cur_start, cur_end, cur_type = sorted_iv[0]
+    for start, end, mt in sorted_iv[1:]:
+        if start <= cur_end:
+            if end > cur_end:
+                cur_end = end
+            # Keep the earliest type — `cur_type` already wins.
+        else:
+            merged.append((cur_start, cur_end, cur_type))
+            cur_start, cur_end, cur_type = start, end, mt
+    merged.append((cur_start, cur_end, cur_type))
+    return merged
 
 
 @dataclass

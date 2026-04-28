@@ -28,6 +28,7 @@ def sync_calendar(
     client: GoogleCalendarClient,
     starts_after: datetime,
     starts_before: datetime,
+    max_results: int = 5000,
 ) -> SyncResult:
     """Pull events from Calendar and upsert into the cache.
 
@@ -38,10 +39,26 @@ def sync_calendar(
     # Ensure customer aliases are present before attribution runs.
     seed_aliases(session)
 
-    events = client.list_events(
+    state_key = f"calendar:{client.user_email}"
+    state = session.get(SyncState, state_key)
+    sync_token = state.cursor if state else None
+
+    # First incremental attempt; if the token is stale we fall back to a
+    # full window pull below.
+    events, next_token = client.list_events(
+        max_results=max_results,
         starts_after=starts_after,
         starts_before=starts_before,
+        sync_token=sync_token,
     )
+
+    if sync_token and next_token is None and not events:
+        # 410 Gone path — token expired. Do a full resync.
+        events, next_token = client.list_events(
+            max_results=max_results,
+            starts_after=starts_after,
+            starts_before=starts_before,
+        )
 
     inserted = 0
     updated = 0
@@ -116,15 +133,21 @@ def sync_calendar(
             session.add(existing)
             updated += 1
 
-    # Update sync cursor
-    state_key = f"calendar:{client.user_email}"
-    state = session.get(SyncState, state_key)
+    # Persist the sync cursor — next run uses this to fetch only the delta.
     now = datetime.now(tz=timezone.utc)
     if state is None:
-        session.add(SyncState(source=state_key, last_synced_at=now))
+        session.add(
+            SyncState(
+                source=state_key,
+                last_synced_at=now,
+                cursor=next_token,
+            )
+        )
     else:
         state.last_synced_at = now
         state.last_error = None
+        if next_token:
+            state.cursor = next_token
         session.add(state)
 
     session.commit()

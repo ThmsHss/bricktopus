@@ -693,6 +693,7 @@ export function useSourcesStatusSuspense<TData = {
 export interface SyncCalendarParams {
     days_back?: number;
     days_forward?: number;
+    max_results?: number;
 }
 export const syncCalendar = async (params?: SyncCalendarParams, options?: RequestInit): Promise<{
     data: SyncResultOut;
@@ -700,6 +701,7 @@ export const syncCalendar = async (params?: SyncCalendarParams, options?: Reques
     const searchParams = new URLSearchParams();
     if (params?.days_back != null) searchParams.set("days_back", String(params?.days_back));
     if (params?.days_forward != null) searchParams.set("days_forward", String(params?.days_forward));
+    if (params?.max_results != null) searchParams.set("max_results", String(params?.max_results));
     const queryString = searchParams.toString();
     const url = queryString ? `/api/sources/sync/calendar?${queryString}` : "/api/sources/sync/calendar";
     const res = await fetch(url, {
