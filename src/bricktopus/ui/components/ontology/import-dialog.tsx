@@ -24,7 +24,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
-import { ApiError, useConnectLlmKey } from "@/lib/api";
+import { ApiError, upsertOrgPerson, useConnectLlmKey } from "@/lib/api";
 import { DropZone } from "./drop-zone";
 import {
   useOntologyExtract,
@@ -84,8 +84,8 @@ export function ImportDialog({
   const [missingKey, setMissingKey] = useState(false);
 
   const extract = useOntologyExtract();
-  const save = useOntologyExtract();
   const queryClient = useQueryClient();
+  const [saving, setSaving] = useState(false);
 
   // Reset whenever the dialog re-opens.
   useEffect(() => {
@@ -94,11 +94,11 @@ export function ImportDialog({
     setRows([]);
     setModel(null);
     setMissingKey(false);
+    setSaving(false);
     setCustomerId(defaultCustomerId ?? "");
     extract.reset();
-    save.reset();
-    // We deliberately don't include the mutation objects in deps — they
-    // are stable references from `useMutation`.
+    // We deliberately don't include the mutation object in deps — it
+    // is a stable reference from `useMutation`.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, defaultCustomerId]);
 
@@ -138,38 +138,59 @@ export function ImportDialog({
   }
 
   async function onSaveSelected() {
-    if (!file) return;
     const eligible = rows.filter((r) => r.selected && isValidEmail(r.email));
     if (eligible.length === 0) {
       toast.error("Select at least one row with a valid email.");
       return;
     }
 
-    // Re-run the same extract call with commit=true. The audit log gets a
-    // second row tagged committed; idempotency on email keeps the people
-    // table clean.
-    save.mutate(
-      {
-        file,
-        customerId: customerId.trim() || null,
-        commit: true,
-      },
-      {
-        onSuccess: (data) => {
-          toast.success(
-            `Saved ${data.committed} ${data.committed === 1 ? "person" : "people"} to the ontology.`,
-          );
-          queryClient.invalidateQueries({
-            queryKey: ["/api/ontology/persons"],
-          });
-          onImported?.();
-          onOpenChange(false);
-        },
-        onError: (err) => {
-          toast.error(`Save failed: ${err.message}`);
-        },
-      },
+    setSaving(true);
+    const trimmedCustomer = customerId.trim() || null;
+    // Per-row upserts so user-deselected rows stay out of the ontology.
+    // `upsertOrgPerson` is idempotent on email, so retries are safe.
+    const results = await Promise.allSettled(
+      eligible.map((row) =>
+        upsertOrgPerson({
+          email: row.email.trim().toLowerCase(),
+          name: row.name,
+          title: row.title,
+          team: row.team,
+          customer_id: trimmedCustomer,
+          source: file?.type === "application/pdf" ? "pdf_upload" : "image_upload",
+          extraction_confidence: row.confidence,
+        }),
+      ),
     );
+    setSaving(false);
+
+    const ok = results.filter((r) => r.status === "fulfilled").length;
+    const failed = results.length - ok;
+
+    if (ok > 0) {
+      toast.success(
+        `Saved ${ok} ${ok === 1 ? "person" : "people"} to the ontology.`,
+      );
+      queryClient.invalidateQueries({
+        queryKey: ["/api/ontology/persons"],
+      });
+      onImported?.();
+    }
+    if (failed > 0) {
+      toast.error(
+        `${failed} row${failed === 1 ? "" : "s"} failed to save — see console.`,
+      );
+      results
+        .filter((r) => r.status === "rejected")
+        .forEach((r) => {
+          if (r.status === "rejected") {
+            // eslint-disable-next-line no-console
+            console.error("upsert failed:", r.reason);
+          }
+        });
+    }
+    if (ok > 0 && failed === 0) {
+      onOpenChange(false);
+    }
   }
 
   function updateRow(id: string, patch: Partial<ReviewRow>) {
@@ -229,9 +250,9 @@ export function ImportDialog({
             </div>
             <Button
               onClick={onSaveSelected}
-              disabled={eligibleCount === 0 || save.isPending}
+              disabled={eligibleCount === 0 || saving}
             >
-              {save.isPending ? (
+              {saving ? (
                 <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
               ) : (
                 <Check className="mr-1.5 h-4 w-4" />
