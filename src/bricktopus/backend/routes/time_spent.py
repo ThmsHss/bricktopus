@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import logging
 from collections import defaultdict
+from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta, timezone
 from typing import Literal
 
@@ -161,8 +162,10 @@ def get_time_spent(
 
     name_for = _customer_name_lookup(session)
 
-    # bucket_start (date) -> customer_id -> {"minutes": int, "by_type": {...}}
-    grouped: dict[date, dict[str, dict[str, object]]] = defaultdict(lambda: defaultdict(_empty_entry))
+    # bucket_start (date) -> customer_id -> Aggregate
+    grouped: dict[date, dict[str, _Aggregate]] = defaultdict(
+        lambda: defaultdict(_Aggregate)
+    )
     totals_customer: dict[str, int] = defaultdict(int)
     totals_type: dict[str, int] = defaultdict(int)
     grand_total = 0
@@ -181,9 +184,10 @@ def get_time_spent(
         bucket_start = bucketize(evt.starts_at)
         meeting_type = evt.meeting_type or "other"
         cust_entry = grouped[bucket_start][evt.customer_id]
-        cust_entry["minutes"] = int(cust_entry["minutes"]) + evt.duration_minutes  # type: ignore[arg-type]
-        by_type: dict[str, int] = cust_entry["by_type"]  # type: ignore[assignment]
-        by_type[meeting_type] = by_type.get(meeting_type, 0) + evt.duration_minutes
+        cust_entry.minutes += evt.duration_minutes
+        cust_entry.by_type[meeting_type] = (
+            cust_entry.by_type.get(meeting_type, 0) + evt.duration_minutes
+        )
 
         totals_customer[evt.customer_id] += evt.duration_minutes
         totals_type[meeting_type] += evt.duration_minutes
@@ -197,12 +201,12 @@ def get_time_spent(
             CustomerBucketEntry(
                 customer_id=cid,
                 customer_name=name_for.get(cid, _humanize_customer_id(cid)),
-                minutes=int(entry["minutes"]),  # type: ignore[arg-type]
-                by_type=dict(entry["by_type"]),  # type: ignore[arg-type]
+                minutes=entry.minutes,
+                by_type=dict(entry.by_type),
             )
             for cid, entry in sorted(
                 per_customer.items(),
-                key=lambda kv: int(kv[1]["minutes"]),  # type: ignore[arg-type]
+                key=lambda kv: kv[1].minutes,
                 reverse=True,
             )
         ]
@@ -237,5 +241,9 @@ def get_time_spent(
     )
 
 
-def _empty_entry() -> dict[str, object]:
-    return {"minutes": 0, "by_type": {}}
+@dataclass
+class _Aggregate:
+    """In-memory accumulator: one row per (bucket, customer)."""
+
+    minutes: int = 0
+    by_type: dict[str, int] = field(default_factory=dict)
