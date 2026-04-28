@@ -133,3 +133,106 @@ export interface OverviewBundle {
 }
 
 export type DataMode = "mock" | "real";
+
+/* ─── Ontology ─────────────────────────────────────────────────────────── */
+
+export type PersonaType =
+  | "champion"
+  | "ally"
+  | "explorer"
+  | "skeptic"
+  | "blocker"
+  | "unknown";
+
+export interface Persona {
+  type: PersonaType;
+  summary: string;
+  motivations: string[];
+  communicationStyle?: string;
+}
+
+export interface OrgPerson {
+  id: string;
+  name: string;
+  title: string;
+  team: string;
+  reportsTo: string | null;
+  persona: Persona;
+  supportRating: number; // 0–5: how supportive of Databricks
+  connectionStrength: number; // 0–5: how strong our relationship is
+  lastInteractionDays: number | null;
+  linkedinUrl?: string;
+  notes?: string;
+  /** Marks roles we've identified as a gap (no real engagement yet). */
+  isGapRole?: boolean;
+  workspaceIds?: string[];
+  useCaseIds?: string[];
+  meetingNoteIds?: string[];
+}
+
+export interface OntologyWorkspace {
+  id: string;
+  name: string;
+  environment: "prod" | "dev" | "sandbox";
+  region: string;
+  ownerId?: string;
+  primaryUserIds: string[];
+  description?: string;
+}
+
+export type UseCaseStatus = "Live" | "In flight" | "Pilot" | "Aspirational";
+
+export interface OntologyUseCase {
+  id: string;
+  name: string;
+  status: UseCaseStatus;
+  sponsorIds: string[];
+  valueChainFunction: string;
+  primarySku?: string;
+  description?: string;
+}
+
+export interface MeetingNoteSummary {
+  id: string;
+  title: string;
+  date: string;
+  attendeeIds: string[];
+  summary: string;
+  lessons: string[];
+  externalUrl?: string;
+}
+
+export interface ValueChainFunction {
+  id: string;
+  name: string;
+  description: string;
+  expectedRoles: string[];
+  /** ids of OrgPerson covering this function (may be empty if it's a gap). */
+  coveredBy: string[];
+  importance: "core" | "supporting" | "emerging";
+}
+
+export interface PeerSignal {
+  function: string;
+  peerCoverage: string;
+  ourCoverage: string;
+  hint: string;
+  intensity: "high" | "medium" | "low";
+}
+
+export interface PeerBenchmark {
+  peer: string;
+  industry: string;
+  relationship: "industry-peer" | "buy-side-peer" | "neighbor";
+  signals: PeerSignal[];
+}
+
+export interface OntologyBundle {
+  customerId: CustomerId;
+  persons: OrgPerson[];
+  workspaces: OntologyWorkspace[];
+  useCases: OntologyUseCase[];
+  meetingNotes: MeetingNoteSummary[];
+  valueChain: ValueChainFunction[];
+  peers: PeerBenchmark[];
+}

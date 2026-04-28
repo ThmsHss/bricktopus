@@ -1,4 +1,9 @@
-import type { Customer, CustomerId, OverviewBundle } from "./types";
+import type {
+  Customer,
+  CustomerId,
+  OntologyBundle,
+  OverviewBundle,
+} from "./types";
 
 /**
  * Single abstraction for everything the dashboard needs.
@@ -10,4 +15,5 @@ export interface DataSource {
   readonly mode: "mock" | "real";
   listCustomers(): Promise<Customer[]>;
   getOverview(customerId: CustomerId): Promise<OverviewBundle>;
+  getOntology(customerId: CustomerId): Promise<OntologyBundle>;
 }

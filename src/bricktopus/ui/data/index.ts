@@ -14,12 +14,23 @@ export type {
   DataMode,
   Engagement,
   Meeting,
+  MeetingNoteSummary,
   NextBestAction,
+  OntologyBundle,
+  OntologyUseCase,
+  OntologyWorkspace,
   OpenTask,
+  OrgPerson,
   OverviewBundle,
+  PeerBenchmark,
+  PeerSignal,
+  Persona,
+  PersonaType,
   ProductStatus,
   SkuShare,
   SpendPoint,
+  UseCaseStatus,
+  ValueChainFunction,
 } from "./types";
 
 const sources: Record<DataMode, DataSource> = {

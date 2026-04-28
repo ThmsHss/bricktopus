@@ -1,5 +1,10 @@
 import type { DataSource } from "./source";
-import type { Customer, CustomerId, OverviewBundle } from "./types";
+import type {
+  Customer,
+  CustomerId,
+  OntologyBundle,
+  OverviewBundle,
+} from "./types";
 
 /**
  * Stub for the real data source.
@@ -18,6 +23,10 @@ export class RealDataSource implements DataSource {
 
   async getOverview(_customerId: CustomerId): Promise<OverviewBundle> {
     throw new RealNotImplementedError("getOverview");
+  }
+
+  async getOntology(_customerId: CustomerId): Promise<OntologyBundle> {
+    throw new RealNotImplementedError("getOntology");
   }
 }
 
