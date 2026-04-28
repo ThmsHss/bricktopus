@@ -23,11 +23,35 @@ export interface Body_extractPeopleFromUpload {
     customer_id?: string | null;
     file: string;
 }
+export interface CalendarEventListOut {
+    events: CalendarEventOut[];
+    total: number;
+}
+export interface CalendarEventOut {
+    attendee_count: number;
+    classification_source: string | null;
+    customer_id: string | null;
+    customer_name: string | null;
+    duration_minutes: number;
+    ends_at: string;
+    id: string;
+    is_all_day: boolean;
+    meeting_type: string | null;
+    organizer_email: string | null;
+    response_status: string | null;
+    self_organized: boolean;
+    starts_at: string;
+    summary: string;
+}
 export interface ClassificationOut {
     classification: "champion" | "supportive" | "blocking";
     customer_id: string;
     person_id: string;
     updated_at: string;
+}
+export interface ClassificationPatch {
+    customer_id?: string | null;
+    meeting_type?: "discovery" | "demo" | "cadence" | "deep-dive" | "prep" | "admin" | "other" | null;
 }
 export interface ClassificationUpsert {
     classification: "champion" | "supportive" | "blocking" | null;
@@ -58,6 +82,13 @@ export interface CustomerChip {
     customer_id: string;
     customer_name: string;
     meeting_count: number;
+}
+export interface CustomerOption {
+    customer_id: string;
+    customer_name: string;
+}
+export interface CustomerOptionsOut {
+    customers: CustomerOption[];
 }
 export interface CustomerTotal {
     customer_id: string;
@@ -285,6 +316,168 @@ export interface ValidationError {
 }
 export interface VersionOut {
     version: string;
+}
+export interface ListCalendarEventsParams {
+    customer_id?: string | null;
+    start?: string | null;
+    end?: string | null;
+    limit?: number;
+}
+export const listCalendarEvents = async (params?: ListCalendarEventsParams, options?: RequestInit): Promise<{
+    data: CalendarEventListOut;
+}> =>{
+    const searchParams = new URLSearchParams();
+    if (params?.customer_id != null) searchParams.set("customer_id", String(params?.customer_id));
+    if (params?.start != null) searchParams.set("start", String(params?.start));
+    if (params?.end != null) searchParams.set("end", String(params?.end));
+    if (params?.limit != null) searchParams.set("limit", String(params?.limit));
+    const queryString = searchParams.toString();
+    const url = queryString ? `/api/calendar-events?${queryString}` : "/api/calendar-events";
+    const res = await fetch(url, {
+        ...options,
+        method: "GET"
+    });
+    if (!res.ok) {
+        const body = await res.text();
+        let parsed: unknown;
+        try {
+            parsed = JSON.parse(body);
+        } catch  {
+            parsed = body;
+        }
+        throw new ApiError(res.status, res.statusText, parsed);
+    }
+    return {
+        data: await res.json()
+    };
+};
+export const listCalendarEventsKey = (params?: ListCalendarEventsParams)=>{
+    return [
+        "/api/calendar-events",
+        params
+    ] as const;
+};
+export function useListCalendarEvents<TData = {
+    data: CalendarEventListOut;
+}>(options?: {
+    params?: ListCalendarEventsParams;
+    query?: Omit<UseQueryOptions<{
+        data: CalendarEventListOut;
+    }, ApiError, TData>, "queryKey" | "queryFn">;
+}) {
+    return useQuery({
+        queryKey: listCalendarEventsKey(options?.params),
+        queryFn: ()=>listCalendarEvents(options?.params),
+        ...options?.query
+    });
+}
+export function useListCalendarEventsSuspense<TData = {
+    data: CalendarEventListOut;
+}>(options?: {
+    params?: ListCalendarEventsParams;
+    query?: Omit<UseSuspenseQueryOptions<{
+        data: CalendarEventListOut;
+    }, ApiError, TData>, "queryKey" | "queryFn">;
+}) {
+    return useSuspenseQuery({
+        queryKey: listCalendarEventsKey(options?.params),
+        queryFn: ()=>listCalendarEvents(options?.params),
+        ...options?.query
+    });
+}
+export const customerOptions = async (options?: RequestInit): Promise<{
+    data: CustomerOptionsOut;
+}> =>{
+    const res = await fetch("/api/calendar-events/customer-options", {
+        ...options,
+        method: "GET"
+    });
+    if (!res.ok) {
+        const body = await res.text();
+        let parsed: unknown;
+        try {
+            parsed = JSON.parse(body);
+        } catch  {
+            parsed = body;
+        }
+        throw new ApiError(res.status, res.statusText, parsed);
+    }
+    return {
+        data: await res.json()
+    };
+};
+export const customerOptionsKey = ()=>{
+    return [
+        "/api/calendar-events/customer-options"
+    ] as const;
+};
+export function useCustomerOptions<TData = {
+    data: CustomerOptionsOut;
+}>(options?: {
+    query?: Omit<UseQueryOptions<{
+        data: CustomerOptionsOut;
+    }, ApiError, TData>, "queryKey" | "queryFn">;
+}) {
+    return useQuery({
+        queryKey: customerOptionsKey(),
+        queryFn: ()=>customerOptions(),
+        ...options?.query
+    });
+}
+export function useCustomerOptionsSuspense<TData = {
+    data: CustomerOptionsOut;
+}>(options?: {
+    query?: Omit<UseSuspenseQueryOptions<{
+        data: CustomerOptionsOut;
+    }, ApiError, TData>, "queryKey" | "queryFn">;
+}) {
+    return useSuspenseQuery({
+        queryKey: customerOptionsKey(),
+        queryFn: ()=>customerOptions(),
+        ...options?.query
+    });
+}
+export interface UpdateEventClassificationParams {
+    event_id: string;
+}
+export const updateEventClassification = async (params: UpdateEventClassificationParams, data: ClassificationPatch, options?: RequestInit): Promise<{
+    data: CalendarEventOut;
+}> =>{
+    const res = await fetch(`/api/calendar-events/${params.event_id}/classification`, {
+        ...options,
+        method: "PATCH",
+        headers: {
+            "Content-Type": "application/json",
+            ...options?.headers
+        },
+        body: JSON.stringify(data)
+    });
+    if (!res.ok) {
+        const body = await res.text();
+        let parsed: unknown;
+        try {
+            parsed = JSON.parse(body);
+        } catch  {
+            parsed = body;
+        }
+        throw new ApiError(res.status, res.statusText, parsed);
+    }
+    return {
+        data: await res.json()
+    };
+};
+export function useUpdateEventClassification(options?: {
+    mutation?: UseMutationOptions<{
+        data: CalendarEventOut;
+    }, ApiError, {
+        params: UpdateEventClassificationParams;
+        data: ClassificationPatch;
+    }>;
+}) {
+    return useMutation({
+        mutationFn: (vars)=>updateEventClassification(vars.params, vars.data),
+        ...options?.mutation
+    });
 }
 export interface CurrentUserParams {
     "X-Forwarded-Host"?: string | null;

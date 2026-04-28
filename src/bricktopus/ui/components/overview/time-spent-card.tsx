@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { CalendarClock, RefreshCw } from "lucide-react";
+import { ReclassifyDialog } from "@/components/overview/reclassify-dialog";
 import {
   Bar,
   BarChart,
@@ -139,7 +140,11 @@ interface LeaderboardProps {
   data: TimeSpentResponse;
 }
 
-function CustomerLeaderboard({ data }: LeaderboardProps) {
+interface LeaderboardClickProps extends LeaderboardProps {
+  onSelect?: (entry: { customer_id: string; customer_name: string }) => void;
+}
+
+function CustomerLeaderboard({ data, onSelect }: LeaderboardClickProps) {
   const total = data.total_minutes || 1;
   const top = data.totals_by_customer.slice(0, 5);
 
@@ -155,30 +160,47 @@ function CustomerLeaderboard({ data }: LeaderboardProps) {
     <ol className="space-y-2.5">
       {top.map((entry, idx) => {
         const share = entry.minutes / total;
+        const interactive = Boolean(onSelect);
         return (
-          <li key={entry.customer_id} className="space-y-1">
-            <div className="flex items-baseline justify-between gap-3">
-              <div className="flex items-baseline gap-2 min-w-0">
-                <span className="font-mono text-[10px] tabular-nums text-muted-foreground w-4">
-                  {String(idx + 1).padStart(2, "0")}
-                </span>
-                <span className="truncate text-sm font-medium">
-                  {entry.customer_name}
+          <li key={entry.customer_id}>
+            <button
+              type="button"
+              onClick={() =>
+                onSelect?.({
+                  customer_id: entry.customer_id,
+                  customer_name: entry.customer_name,
+                })
+              }
+              disabled={!interactive}
+              className={`group block w-full space-y-1 rounded-md text-left ${
+                interactive
+                  ? "cursor-pointer hover:bg-accent/40 focus-visible:bg-accent/40 focus-visible:outline-none px-1.5 py-1 -mx-1.5"
+                  : ""
+              }`}
+            >
+              <div className="flex items-baseline justify-between gap-3">
+                <div className="flex items-baseline gap-2 min-w-0">
+                  <span className="font-mono text-[10px] tabular-nums text-muted-foreground w-4">
+                    {String(idx + 1).padStart(2, "0")}
+                  </span>
+                  <span className="truncate text-sm font-medium group-hover:text-foreground">
+                    {entry.customer_name}
+                  </span>
+                </div>
+                <span className="font-mono text-xs tabular-nums text-muted-foreground">
+                  {minutesToHours(entry.minutes)}
                 </span>
               </div>
-              <span className="font-mono text-xs tabular-nums text-muted-foreground">
-                {minutesToHours(entry.minutes)}
-              </span>
-            </div>
-            <div className="relative h-1 w-full overflow-hidden rounded-full bg-muted">
-              <div
-                className="absolute inset-y-0 left-0 rounded-full"
-                style={{
-                  width: `${Math.max(2, share * 100)}%`,
-                  background: colorForCustomer(entry.customer_id),
-                }}
-              />
-            </div>
+              <div className="relative h-1 w-full overflow-hidden rounded-full bg-muted">
+                <div
+                  className="absolute inset-y-0 left-0 rounded-full"
+                  style={{
+                    width: `${Math.max(2, share * 100)}%`,
+                    background: colorForCustomer(entry.customer_id),
+                  }}
+                />
+              </div>
+            </button>
           </li>
         );
       })}
@@ -275,6 +297,10 @@ export function TimeSpentCard() {
   const [bucket, setBucket] = useState<TimeSpentBucket>("week");
   const [syncing, setSyncing] = useState(false);
   const [syncError, setSyncError] = useState<string | null>(null);
+  const [reclassify, setReclassify] = useState<{
+    customer_id: string;
+    customer_name: string;
+  } | null>(null);
   const { data, isPending, error, refetch } = useTimeSpent({ bucket });
 
   const handleSync = async () => {
@@ -461,7 +487,7 @@ export function TimeSpentCard() {
                 <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
                   Top customers
                 </div>
-                <CustomerLeaderboard data={data} />
+                <CustomerLeaderboard data={data} onSelect={setReclassify} />
               </div>
               <div className="space-y-2">
                 <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
@@ -476,6 +502,16 @@ export function TimeSpentCard() {
           </div>
         )}
       </CardContent>
+      <ReclassifyDialog
+        open={reclassify !== null}
+        onOpenChange={(open) => {
+          if (!open) setReclassify(null);
+        }}
+        customerId={reclassify?.customer_id ?? null}
+        customerName={reclassify?.customer_name ?? ""}
+        start={data.range_start}
+        end={data.range_end}
+      />
     </Card>
   );
 }
