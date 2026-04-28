@@ -23,7 +23,7 @@ from ..cache.sources import CalendarEvent, CustomerAlias
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/time-spent", tags=["time-spent"])
+router = APIRouter(prefix="/api/time-spent", tags=["time-spent"])
 
 Bucket = Literal["week", "month"]
 

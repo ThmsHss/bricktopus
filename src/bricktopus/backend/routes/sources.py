@@ -14,7 +14,7 @@ from ..cache import session_dependency
 from ..mcp_clients import GmailClient, GoogleCalendarClient, NotionClient
 from ..sync import sync_calendar, sync_gmail, sync_notion
 
-router = APIRouter(prefix="/sources", tags=["sources"])
+router = APIRouter(prefix="/api/sources", tags=["sources"])
 
 
 class SourceStatusOut(BaseModel):

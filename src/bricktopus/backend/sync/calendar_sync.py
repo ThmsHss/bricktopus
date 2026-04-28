@@ -10,7 +10,7 @@ from sqlmodel import Session
 
 from ..cache.sources import CalendarEvent, SyncState
 from ..mcp_clients.google_calendar import GoogleCalendarClient
-from ..services.attribution import attribute
+from ..services.attribution import attribute, seed_aliases
 from ..services.meeting_classifier import classify_meeting_type
 
 
@@ -35,6 +35,9 @@ def sync_calendar(
     query consumers don't redo them. Manual overrides (customer or type) are
     preserved across re-syncs.
     """
+    # Ensure customer aliases are present before attribution runs.
+    seed_aliases(session)
+
     events = client.list_events(
         starts_after=starts_after,
         starts_before=starts_before,

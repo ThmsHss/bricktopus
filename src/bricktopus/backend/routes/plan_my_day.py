@@ -24,7 +24,7 @@ from ..sync import sync_calendar
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/plan-my-day", tags=["plan-my-day"])
+router = APIRouter(prefix="/api/plan-my-day", tags=["plan-my-day"])
 
 
 def _resolve_user_email() -> str:

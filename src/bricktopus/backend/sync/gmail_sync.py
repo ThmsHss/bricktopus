@@ -9,7 +9,7 @@ from sqlmodel import Session
 
 from ..cache.sources import EmailThread, SyncState
 from ..mcp_clients.gmail import GmailClient
-from ..services.attribution import attribute
+from ..services.attribution import attribute, seed_aliases
 
 
 @dataclass(frozen=True)
@@ -26,6 +26,7 @@ def sync_gmail(
     client: GmailClient,
     modified_after: datetime,
 ) -> SyncResult:
+    seed_aliases(session)
     threads = client.list_threads(modified_after=modified_after)
 
     inserted = 0

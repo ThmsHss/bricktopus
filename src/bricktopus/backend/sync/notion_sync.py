@@ -11,7 +11,7 @@ from sqlmodel import Session
 
 from ..cache.sources import NotionPage, SyncState
 from ..mcp_clients.notion import NotionClient
-from ..services.attribution import attribute
+from ..services.attribution import attribute, seed_aliases
 
 
 @dataclass(frozen=True)
@@ -28,6 +28,7 @@ def sync_notion(
     client: NotionClient,
     edited_after: datetime,
 ) -> SyncResult:
+    seed_aliases(session)
     pages = client.list_meeting_notes(edited_after=edited_after)
 
     inserted = 0
