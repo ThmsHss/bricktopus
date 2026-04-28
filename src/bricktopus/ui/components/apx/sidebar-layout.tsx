@@ -12,7 +12,10 @@ import {
 } from "@/components/ui/sidebar";
 import SidebarUserFooter from "@/components/apx/sidebar-user-footer";
 import { ModeToggle } from "@/components/apx/mode-toggle";
+import { CustomerPicker } from "@/components/apx/customer-picker";
+import { DataModeToggle } from "@/components/apx/data-mode-toggle";
 import Logo from "@/components/apx/logo";
+import { Separator } from "@/components/ui/separator";
 
 interface SidebarLayoutProps {
   children?: ReactNode;
@@ -23,8 +26,8 @@ function SidebarLayout({ children }: SidebarLayoutProps) {
     <SidebarProvider>
       <Sidebar>
         <SidebarHeader>
-          <div className="px-2 py-2">
-            <Logo />
+          <div className="px-2 py-3">
+            <Logo size="md" />
           </div>
         </SidebarHeader>
         <SidebarContent>{children}</SidebarContent>
@@ -34,13 +37,16 @@ function SidebarLayout({ children }: SidebarLayoutProps) {
         <SidebarRail />
       </Sidebar>
       <SidebarInset className="flex flex-col h-screen">
-        <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-sm border-b flex h-16 shrink-0 items-center gap-2 px-4">
+        <header className="sticky top-0 z-40 flex h-16 shrink-0 items-center gap-3 border-b bg-background/85 px-4 backdrop-blur-md">
           <SidebarTrigger className="-ml-1 cursor-pointer" />
+          <Separator orientation="vertical" className="!h-6" />
+          <CustomerPicker />
           <div className="flex-1" />
+          <DataModeToggle />
           <ModeToggle />
         </header>
-        <div className="flex flex-1 justify-center overflow-auto">
-          <div className="flex flex-1 flex-col gap-4 p-6 max-w-7xl">
+        <div className="flex-1 overflow-auto">
+          <div className="mx-auto w-full max-w-7xl px-6 py-8">
             <Outlet />
           </div>
         </div>
