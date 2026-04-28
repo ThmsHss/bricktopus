@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
-import { AlertCircle, Network } from "lucide-react";
+import { AlertCircle, Network, Plus } from "lucide-react";
 import { useOntology } from "@/hooks/use-overview";
 import { useClassifications } from "@/hooks/use-classifications";
 import {
@@ -11,6 +11,8 @@ import { LayerToggles } from "@/components/ontology/layer-toggles";
 import { DetailPanel } from "@/components/ontology/detail-panel";
 import { GapPanel } from "@/components/ontology/gap-panel";
 import { PeerPanel } from "@/components/ontology/peer-panel";
+import { IngestDocDialog } from "@/components/ontology/ingest-doc-dialog";
+import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Sheet,
@@ -70,7 +72,21 @@ function OntologyRoute() {
 
       <div className="flex flex-col gap-3 rounded-xl border bg-card/40 p-3">
         <div className="flex flex-wrap items-center justify-between gap-3 px-1">
-          <LayerToggles layers={layers} onChange={setLayers} />
+          <div className="flex flex-wrap items-center gap-2">
+            <LayerToggles layers={layers} onChange={setLayers} />
+            <IngestDocDialog
+              trigger={
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-7 gap-1.5 rounded-full border-chart-3/40 px-3 text-xs text-chart-3 hover:bg-chart-3/10"
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                  Ingest doc
+                </Button>
+              }
+            />
+          </div>
           <div className="text-[10px] uppercase tracking-wider text-muted-foreground">
             {stats}
           </div>

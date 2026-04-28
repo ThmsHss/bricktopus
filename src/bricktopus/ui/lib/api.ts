@@ -131,6 +131,28 @@ export interface NotionExcerpt {
     title: string;
     url: string | null;
 }
+export interface IngestDocIn {
+    commit?: boolean;
+    customer_id?: string | null;
+    kind: string;
+    url_or_id: string;
+}
+export interface IngestedPersonOut {
+    confidence: number;
+    email: string | null;
+    manager_name: string | null;
+    name: string | null;
+    ready_to_upsert: boolean;
+    team: string | null;
+    title: string | null;
+}
+export interface IngestDocOut {
+    committed: number;
+    doc_chars: number;
+    extraction_id: number;
+    model: string;
+    people: IngestedPersonOut[];
+}
 export interface OrgPersonListOut {
     persons: OrgPersonOut[];
     total: number;
@@ -541,6 +563,42 @@ export function useLlmStatusSuspense<TData = {
         queryKey: llmStatusKey(),
         queryFn: ()=>llmStatus(),
         ...options?.query
+    });
+}
+export const ingestDoc = async (data: IngestDocIn, options?: RequestInit): Promise<{
+    data: IngestDocOut;
+}> =>{
+    const res = await fetch("/api/ontology/ingest-doc", {
+        ...options,
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            ...options?.headers
+        },
+        body: JSON.stringify(data)
+    });
+    if (!res.ok) {
+        const body = await res.text();
+        let parsed: unknown;
+        try {
+            parsed = JSON.parse(body);
+        } catch  {
+            parsed = body;
+        }
+        throw new ApiError(res.status, res.statusText, parsed);
+    }
+    return {
+        data: await res.json()
+    };
+};
+export function useIngestDoc(options?: {
+    mutation?: UseMutationOptions<{
+        data: IngestDocOut;
+    }, ApiError, IngestDocIn>;
+}) {
+    return useMutation({
+        mutationFn: (data)=>ingestDoc(data),
+        ...options?.mutation
     });
 }
 export interface ListOrgPersonsParams {
