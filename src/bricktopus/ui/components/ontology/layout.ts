@@ -3,21 +3,26 @@ import type { OntologyBundle, OrgPerson, OrgUnit } from "@/data";
 
 /* ────────── Person card geometry ────────── */
 export const PERSON_NODE_WIDTH = 232;
-export const PERSON_NODE_HEIGHT = 142;
+export const PERSON_NODE_HEIGHT = 92;
 export const USECASE_NODE_WIDTH = 240;
 export const USECASE_NODE_HEIGHT = 96;
 export const MEETING_NODE_WIDTH = 220;
 export const MEETING_NODE_HEIGHT = 70;
 
 /* ────────── Layout constants ────────── */
-const COLUMN_GAP = 28;
-const SECTION_GAP = 60; // gap between Central IT and Business Unit blocks
-const ROW_GAP = 26;
+const COLUMN_GAP = 24;
+const SECTION_GAP = 80; // gap between Central IT and Business Unit blocks
+const ROW_GAP = 18;
 const EXEC_BAND_Y = 0;
-const EXEC_BAND_HEIGHT = 200;
-const COLUMN_HEADER_HEIGHT = 56;
-const STAGE_TOP_PADDING = 24;
+const EXEC_BAND_HEIGHT = 180;
+const COLUMN_HEADER_HEIGHT = 48;
+const STAGE_TOP_PADDING = 16;
 const STAGE_OUTER_PADDING = 32;
+const GROUP_BANNER_OFFSET = 36; // distance above section top where banner sits
+const GROUP_BANNER_HEIGHT = 26;
+const PANEL_PAD_X = 18; // horizontal padding inside the tinted group panel
+const PANEL_PAD_TOP = 18;
+const PANEL_PAD_BOTTOM = 24;
 
 interface SwimlaneColumn {
   unit: OrgUnit;
@@ -96,9 +101,16 @@ interface SectionBlockProps {
   columns: SwimlaneColumn[];
   groupLabel: string;
   groupId: string;
+  groupTone: "central-it" | "business-units";
   positionedPersons: PositionedPerson[];
-  groupNodes: Node[];
+  panelNodes: Node[];
+  bannerNodes: Node[];
   columnNodes: Node[];
+}
+
+interface SectionBlockResult {
+  width: number;
+  bottom: number;
 }
 
 function placeSectionColumns({
@@ -106,32 +118,64 @@ function placeSectionColumns({
   columns,
   groupLabel,
   groupId,
+  groupTone,
   positionedPersons,
-  groupNodes,
+  panelNodes,
+  bannerNodes,
   columnNodes,
-}: SectionBlockProps): { width: number } {
+}: SectionBlockProps): SectionBlockResult {
   const columnWidth = PERSON_NODE_WIDTH;
   const sectionWidth =
     columns.length === 0
       ? 0
       : columns.length * columnWidth + (columns.length - 1) * COLUMN_GAP;
 
-  if (sectionWidth === 0) return { width: 0 };
+  if (sectionWidth === 0) return { width: 0, bottom: EXEC_BAND_HEIGHT };
 
   const sectionTop = EXEC_BAND_HEIGHT;
+  const tallest = columns.reduce(
+    (acc, c) => Math.max(acc, c.persons.length),
+    0,
+  );
+  const personsHeight =
+    tallest > 0
+      ? tallest * PERSON_NODE_HEIGHT + (tallest - 1) * ROW_GAP
+      : 0;
+  const sectionInnerHeight =
+    COLUMN_HEADER_HEIGHT + STAGE_TOP_PADDING + personsHeight;
 
-  // Group banner spanning the columns inside this section
-  groupNodes.push({
-    id: `band-${groupId}`,
-    type: "groupBand",
-    position: { x: startX - 12, y: sectionTop - 28 },
-    data: { label: groupLabel },
-    width: sectionWidth + 24,
-    height: 22,
+  // Tinted background panel that anchors the entire section.
+  panelNodes.push({
+    id: `panel-${groupId}`,
+    type: "groupPanel",
+    position: {
+      x: startX - PANEL_PAD_X,
+      y: sectionTop - PANEL_PAD_TOP,
+    },
+    data: { tone: groupTone },
+    width: sectionWidth + PANEL_PAD_X * 2,
+    height: sectionInnerHeight + PANEL_PAD_TOP + PANEL_PAD_BOTTOM,
     selectable: false,
     draggable: false,
     focusable: false,
-    zIndex: -2,
+    zIndex: -3,
+  });
+
+  // Confident banner sitting above the section.
+  bannerNodes.push({
+    id: `band-${groupId}`,
+    type: "groupBand",
+    position: {
+      x: startX - PANEL_PAD_X,
+      y: sectionTop - PANEL_PAD_TOP - GROUP_BANNER_OFFSET,
+    },
+    data: { label: groupLabel, tone: groupTone },
+    width: sectionWidth + PANEL_PAD_X * 2,
+    height: GROUP_BANNER_HEIGHT,
+    selectable: false,
+    draggable: false,
+    focusable: false,
+    zIndex: -1,
   });
 
   columns.forEach((col, ci) => {
@@ -147,7 +191,7 @@ function placeSectionColumns({
       selectable: false,
       draggable: false,
       focusable: false,
-      zIndex: -1,
+      zIndex: 0,
     });
     col.persons.forEach((p, pi) => {
       const y =
@@ -159,7 +203,10 @@ function placeSectionColumns({
     });
   });
 
-  return { width: sectionWidth };
+  return {
+    width: sectionWidth,
+    bottom: sectionTop + sectionInnerHeight + PANEL_PAD_BOTTOM,
+  };
 }
 
 export function buildSwimlaneLayout(
@@ -167,7 +214,8 @@ export function buildSwimlaneLayout(
 ): SwimlaneLayout {
   const { exec, centralIt, bus } = bucketByUnit(ontology);
 
-  const groupNodes: Node[] = [];
+  const panelNodes: Node[] = [];
+  const bannerNodes: Node[] = [];
   const columnNodes: Node[] = [];
   const positionedPersons: PositionedPerson[] = [];
 
@@ -177,8 +225,10 @@ export function buildSwimlaneLayout(
     columns: centralIt,
     groupLabel: "Central IT",
     groupId: "central-it",
+    groupTone: "central-it",
     positionedPersons,
-    groupNodes,
+    panelNodes,
+    bannerNodes,
     columnNodes,
   });
 
@@ -193,10 +243,39 @@ export function buildSwimlaneLayout(
     columns: bus,
     groupLabel: "Business Units",
     groupId: "business-units",
+    groupTone: "business-units",
     positionedPersons,
-    groupNodes,
+    panelNodes,
+    bannerNodes,
     columnNodes,
   });
+
+  // Vertical separator nestled between the two sections.
+  if (centralItRes.width > 0 && busRes.width > 0) {
+    const separatorTop = EXEC_BAND_HEIGHT - PANEL_PAD_TOP - GROUP_BANNER_OFFSET;
+    const separatorBottom = Math.max(centralItRes.bottom, busRes.bottom);
+    const separatorX =
+      STAGE_OUTER_PADDING + centralItRes.width + SECTION_GAP / 2;
+    panelNodes.push({
+      id: "section-divider",
+      type: "groupPanel",
+      position: { x: separatorX - 1, y: separatorTop },
+      data: { tone: "central-it" },
+      width: 2,
+      height: separatorBottom - separatorTop,
+      selectable: false,
+      draggable: false,
+      focusable: false,
+      zIndex: -2,
+      // Hide the rounded border via inline style so this reads as a hairline.
+      style: {
+        background: "var(--border)",
+        opacity: 0.6,
+        border: "none",
+        borderRadius: 0,
+      },
+    });
+  }
 
   const stageWidth =
     centralItRes.width +
@@ -210,17 +289,17 @@ export function buildSwimlaneLayout(
       exec.length * PERSON_NODE_WIDTH + (exec.length - 1) * COLUMN_GAP;
     const execStartX = (stageWidth - execTotalWidth) / 2;
 
-    groupNodes.push({
+    bannerNodes.push({
       id: "band-exec",
       type: "groupBand",
       position: { x: STAGE_OUTER_PADDING / 2, y: EXEC_BAND_Y },
-      data: { label: "Executive" },
+      data: { label: "Executive", tone: "executive" },
       width: stageWidth - STAGE_OUTER_PADDING,
-      height: 22,
+      height: GROUP_BANNER_HEIGHT,
       selectable: false,
       draggable: false,
       focusable: false,
-      zIndex: -2,
+      zIndex: -1,
     });
 
     exec.forEach((p, i) => {
@@ -257,16 +336,21 @@ export function buildSwimlaneLayout(
       targetHandle: "tgt",
     }));
 
-  const allNodes = [...groupNodes, ...columnNodes, ...personNodes];
-  const stageHeight =
-    EXEC_BAND_HEIGHT +
-    COLUMN_HEADER_HEIGHT +
-    STAGE_TOP_PADDING +
-    Math.max(
-      ...[...centralIt, ...bus].map((c) => c.persons.length),
-      1,
-    ) *
-      (PERSON_NODE_HEIGHT + ROW_GAP);
+  // Order matters for default render z-order: panels first (deepest), then
+  // banners, then column headers, then people. Explicit `zIndex` on each node
+  // also enforces stacking.
+  const allNodes = [
+    ...panelNodes,
+    ...bannerNodes,
+    ...columnNodes,
+    ...personNodes,
+  ];
+  const stageHeight = Math.max(centralItRes.bottom, busRes.bottom);
 
-  return { nodes: allNodes, edges: personEdges, width: stageWidth, height: stageHeight };
+  return {
+    nodes: allNodes,
+    edges: personEdges,
+    width: stageWidth,
+    height: stageHeight,
+  };
 }
