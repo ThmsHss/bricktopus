@@ -40,9 +40,13 @@ export function BricktopusProvider({
   defaultMode = "mock",
   defaultCustomerId = "puma",
 }: BricktopusProviderProps) {
-  const [mode, setModeState] = useState<DataMode>(() =>
-    readPersisted<DataMode>(MODE_STORAGE_KEY, defaultMode),
-  );
+  // Real adapters aren't wired yet — force mock so users with a stale
+  // localStorage value (set before the toggle was disabled) don't land on
+  // a broken page with "Real data source is not wired up yet".
+  const [mode, setModeState] = useState<DataMode>(() => {
+    const persisted = readPersisted<DataMode>(MODE_STORAGE_KEY, defaultMode);
+    return persisted === "real" ? "mock" : persisted;
+  });
   const [customerId, setCustomerIdState] = useState<CustomerId>(() =>
     readPersisted<CustomerId>(CUSTOMER_STORAGE_KEY, defaultCustomerId),
   );

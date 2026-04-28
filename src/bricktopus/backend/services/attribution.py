@@ -40,6 +40,7 @@ class AttributionResult:
 # ---------- Static seed list ----------
 # Initial aliases known up-front. New customers are added via API later.
 SEED_ALIASES: list[dict[str, str | int]] = [
+    # PUMA
     {
         "customer_id": "puma",
         "customer_name": "PUMA",
@@ -54,26 +55,50 @@ SEED_ALIASES: list[dict[str, str | int]] = [
         "pattern": r"\bpuma\b",
         "priority": 20,
     },
+    # Grünenthal
     {
-        "customer_id": "adidas",
-        "customer_name": "adidas",
+        "customer_id": "gruenenthal",
+        "customer_name": "Grünenthal",
         "match_kind": "email_domain",
-        "pattern": "adidas.com",
+        "pattern": "grunenthal.com",
         "priority": 10,
     },
     {
-        "customer_id": "adidas",
-        "customer_name": "adidas",
+        "customer_id": "gruenenthal",
+        "customer_name": "Grünenthal",
         "match_kind": "title_regex",
-        "pattern": r"\badidas\b",
+        "pattern": r"\bgr(ü|ue)nenthal\b",
         "priority": 20,
     },
+    # BioNTech
     {
-        "customer_id": "lvmh",
-        "customer_name": "LVMH",
+        "customer_id": "biontech",
+        "customer_name": "BioNTech",
         "match_kind": "email_domain",
-        "pattern": "lvmh.com",
+        "pattern": "biontech.de",
         "priority": 10,
+    },
+    {
+        "customer_id": "biontech",
+        "customer_name": "BioNTech",
+        "match_kind": "title_regex",
+        "pattern": r"\bbiontech\b",
+        "priority": 20,
+    },
+    # Beiersdorf
+    {
+        "customer_id": "beiersdorf",
+        "customer_name": "Beiersdorf",
+        "match_kind": "email_domain",
+        "pattern": "beiersdorf.com",
+        "priority": 10,
+    },
+    {
+        "customer_id": "beiersdorf",
+        "customer_name": "Beiersdorf",
+        "match_kind": "title_regex",
+        "pattern": r"\bbeiersdorf\b",
+        "priority": 20,
     },
 ]
 

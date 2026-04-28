@@ -205,7 +205,18 @@ export function OntologyCanvas({
       maxZoom={1.5}
       nodesDraggable={false}
       nodesConnectable={false}
-      elementsSelectable={false}
+      elementsSelectable
+      selectNodesOnDrag={false}
+      onNodeClick={(_e, node) => {
+        if (
+          node.type === "groupBand" ||
+          node.type === "groupPanel" ||
+          node.type === "columnHeader"
+        ) {
+          return;
+        }
+        onSelectNode(node.id);
+      }}
       onPaneClick={() => onSelectNode(null)}
       className="bg-background"
     >

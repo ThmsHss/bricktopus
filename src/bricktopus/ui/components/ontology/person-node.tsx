@@ -17,25 +17,16 @@ export interface PersonNodeData extends Record<string, unknown> {
 }
 
 export function PersonNode({ data }: { data: PersonNodeData }) {
-  const { person, classification, selected, onSelect } = data;
+  const { person, classification, selected } = data;
   const effective = resolveClassification(person.persona.type, classification);
   const meta = effective ? CLASSIFICATION_META[effective] : null;
   const isGap = person.isGapRole === true;
 
   return (
     <div
-      role="button"
-      tabIndex={0}
-      onClick={() => onSelect?.(person.id)}
-      onKeyDown={(e) => {
-        if (e.key === "Enter" || e.key === " ") {
-          e.preventDefault();
-          onSelect?.(person.id);
-        }
-      }}
       className={cn(
         "group w-[232px] cursor-pointer rounded-lg border bg-card text-left shadow-sm transition-all",
-        "hover:border-primary/50 hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+        "hover:border-primary/50 hover:shadow-md",
         isGap && "border-dashed bg-muted/40",
         selected && "border-primary shadow-md ring-1 ring-primary/40",
       )}

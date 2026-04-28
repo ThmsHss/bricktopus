@@ -141,9 +141,19 @@ def _mock_pages(*, edited_after: datetime, page_size: int) -> list[NotionPageDTO
             {"Account": "PUMA", "Type": "Cadence"},
         ),
         (
-            "adidas — Genie pilot kickoff",
+            "BioNTech — clinical data platform discovery",
+            3,
+            {"Account": "BioNTech", "Type": "Discovery"},
+        ),
+        (
+            "Grünenthal — UC governance walkthrough",
             5,
-            {"Account": "adidas", "Type": "Demo"},
+            {"Account": "Grünenthal", "Type": "Best practices"},
+        ),
+        (
+            "Beiersdorf — Genie marketing demo recap",
+            7,
+            {"Account": "Beiersdorf", "Type": "Demo"},
         ),
         (
             "FE — Q3 planning offsite",

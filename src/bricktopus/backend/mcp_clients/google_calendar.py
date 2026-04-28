@@ -116,10 +116,44 @@ def _mock_events(
             30,
         ),
         (
-            "adidas demo: Mosaic recsys",
-            "Live walkthrough.",
-            ["leo.weber@adidas.com", "anna.mueller@databricks.com"],
+            "BioNTech discovery — clinical data platform",
+            "Discovery on clinical trial data unification.",
+            ["mira.koch@biontech.de", "thomas.hass@databricks.com"],
+            60,
+        ),
+        (
+            "BioNTech demo: Mosaic AI for protein design",
+            "Demo of fine-tuning workflow.",
+            ["mira.koch@biontech.de", "lukas.berg@biontech.de",
+             "anna.mueller@databricks.com"],
             45,
+        ),
+        (
+            "Grünenthal cadence",
+            "Weekly account sync.",
+            ["sven.fischer@grunenthal.com",
+             "thomas.hass@databricks.com"],
+            45,
+        ),
+        (
+            "Grünenthal best-practices session: Unity Catalog",
+            "Best-practices walkthrough on UC governance.",
+            ["sven.fischer@grunenthal.com", "marie.weiss@grunenthal.com",
+             "marco.rossi@databricks.com"],
+            60,
+        ),
+        (
+            "Beiersdorf demo: Genie for marketing analytics",
+            "Live demo for the marketing team.",
+            ["jan.becker@beiersdorf.com",
+             "anna.mueller@databricks.com"],
+            45,
+        ),
+        (
+            "Beiersdorf prep — QBR briefing",
+            "Self-organized prep before tomorrow's QBR.",
+            [],  # title regex picks it up as Beiersdorf prep
+            30,
         ),
         (
             "FE EMEA regional sync",
