@@ -318,6 +318,7 @@ _EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 class ExtractedPersonOut(BaseModel):
     """Single proposed person from an extraction call."""
 
+
     name: Optional[str]
     title: Optional[str]
     team: Optional[str]
@@ -337,6 +338,31 @@ class ExtractionResponseOut(BaseModel):
 
     model: str
     people: list[ExtractedPersonOut]
+    committed: int
+    extraction_id: int
+
+
+class IngestDocIn(BaseModel):
+    kind: str = Field(description="'gdoc' | 'notion'")
+    url_or_id: str = Field(min_length=3)
+    customer_id: Optional[str] = None
+    commit: bool = False
+
+
+class IngestedPersonOut(BaseModel):
+    name: Optional[str]
+    title: Optional[str]
+    team: Optional[str]
+    manager_name: Optional[str]
+    email: Optional[str]
+    confidence: float
+    ready_to_upsert: bool
+
+
+class IngestDocOut(BaseModel):
+    model: str
+    doc_chars: int
+    people: list[IngestedPersonOut]
     committed: int
     extraction_id: int
 
@@ -474,4 +500,126 @@ async def extract_people_from_upload(
         people=proposed,
         committed=committed,
         extraction_id=extraction.id,
+    )
+
+
+# ────────── Doc-URL ingest (Google Docs / Notion) ──────────
+
+
+@router.post(
+    "/ingest-doc",
+    response_model=IngestDocOut,
+    operation_id="ingestDoc",
+)
+def ingest_doc(
+    session: session_dependency,
+    body: IngestDocIn,
+) -> IngestDocOut:
+    """Resolve URL/id → fetch text → extract people → optional upsert.
+
+    `commit=False` (default) is a dry-run: returns the LLM's people list
+    plus an audit row, without touching `org_persons`. The frontend uses
+    this two-step pattern for the review-before-save UX.
+    """
+    from ..services import gdocs_ingest, notion_ingest
+
+    kind = (body.kind or "").strip().lower()
+    if kind not in {"gdoc", "notion"}:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unsupported kind {body.kind!r} (expected 'gdoc' or 'notion').",
+        )
+
+    try:
+        if kind == "gdoc":
+            doc_id = gdocs_ingest.parse_doc_url(body.url_or_id)
+        else:
+            doc_id = notion_ingest.parse_page_id(body.url_or_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    try:
+        if kind == "gdoc":
+            text = gdocs_ingest.fetch_doc_text(doc_id)
+        else:
+            text = notion_ingest.fetch_page_plain_text(doc_id)
+    except RuntimeError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+    except HTTPException:
+        raise
+    except Exception as exc:  # noqa: BLE001
+        raise HTTPException(
+            status_code=502,
+            detail=f"Upstream {kind} fetch failed: {exc}",
+        ) from exc
+
+    if not text:
+        raise HTTPException(
+            status_code=400,
+            detail="Document fetched but contains no plain text.",
+        )
+
+    client = get_llm_client()
+    try:
+        result = client.extract_people(
+            kind="text",
+            content=text,
+            customer_hint=body.customer_id,
+        )
+    except LLMNotConfigured as exc:
+        raise HTTPException(
+            status_code=503,
+            detail=f"{exc} Connect a key at /api/ontology/llm-key.",
+        ) from exc
+
+    extraction = OrgExtraction(
+        source_type=kind,
+        source_label=body.url_or_id,
+        customer_id=body.customer_id,
+        person_count=len(result.people),
+        raw_response=result.raw_response,
+        model=result.model,
+    )
+    session.add(extraction)
+    session.flush()
+
+    source_label = "google_docs" if kind == "gdoc" else "notion"
+    committed = 0
+    people_out: list[IngestedPersonOut] = []
+    for person in result.people:
+        ready = bool(person.email and "@" in (person.email or ""))
+        if body.commit and ready:
+            upsert_person(
+                session,
+                OrgPersonUpsert(
+                    email=person.email or "",
+                    name=person.name,
+                    title=person.title,
+                    team=person.team,
+                    customer_id=body.customer_id,
+                    source=source_label,
+                    extraction_confidence=person.confidence,
+                ),
+            )
+            committed += 1
+        people_out.append(
+            IngestedPersonOut(
+                name=person.name,
+                title=person.title,
+                team=person.team,
+                manager_name=person.manager_name,
+                email=person.email,
+                confidence=person.confidence,
+                ready_to_upsert=ready,
+            )
+        )
+
+    session.commit()
+
+    return IngestDocOut(
+        model=result.model,
+        doc_chars=len(text),
+        people=people_out,
+        committed=committed,
+        extraction_id=extraction.id or 0,
     )
