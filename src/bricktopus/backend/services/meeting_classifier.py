@@ -3,7 +3,7 @@
 Pure-Python regex table — no LLM. Output is one of a fixed vocabulary so
 downstream UI and analytics can rely on a known set:
 
-  discovery | demo | cadence | deep-dive | prep | other
+  discovery | demo | cadence | deep-dive | prep | admin | other
 
 Order matters. Rules are checked top-down and the first match wins. `prep`
 is intentionally checked before `cadence` so a self-organized "Puma prep"
@@ -17,7 +17,15 @@ from collections.abc import Iterable
 from dataclasses import dataclass
 from typing import Literal
 
-MeetingType = Literal["discovery", "demo", "cadence", "deep-dive", "prep", "other"]
+MeetingType = Literal[
+    "discovery",
+    "demo",
+    "cadence",
+    "deep-dive",
+    "prep",
+    "admin",
+    "other",
+]
 
 INTERNAL_DOMAINS = frozenset({"databricks.com"})
 
@@ -98,8 +106,10 @@ def classify_meeting_type(
     haystack = f"{safe_title}\n{safe_desc}"
     has_external, _has_internal = _split_attendees(attendee_emails or [])
 
-    # 1. prep — checked first so "Puma prep" doesn't fall through to cadence
-    if (self_organized and not has_external) or _PREP_RE.search(safe_title):
+    # 1. prep — explicit "prep" / "preparation" in the title wins. A self-
+    # organized "Puma prep" block lands here because of the regex; pure
+    # self-organized blocks without "prep" fall to admin below.
+    if _PREP_RE.search(safe_title):
         return "prep"
 
     # 2. discovery
@@ -118,6 +128,13 @@ def classify_meeting_type(
     # 5. cadence — only if it really has the recurring/sync feel
     if _CADENCE_RE.search(haystack):
         return "cadence"
+
+    # 6. admin — self-organized blocks with no other category. Captures
+    # personal work, focus time, summarize-the-day, travel, review-
+    # consumption blocks, etc. Customer-attributed admin (e.g. "Puma
+    # roadmap planning" you set up alone) still gets the customer label.
+    if self_organized and not has_external:
+        return "admin"
 
     return "other"
 

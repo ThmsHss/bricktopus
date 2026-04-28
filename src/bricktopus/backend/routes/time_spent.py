@@ -41,6 +41,9 @@ MAX_MINUTES_PER_EVENT = 240
 
 # Self-organized blockers we should NOT count as time spent. Matched
 # case-insensitively against the event summary.
+# True blockers — events that aren't "work time" at all and should be
+# excluded entirely. Work-style self-organized blocks (focus, travel, prep,
+# personal work, etc.) are NOT here — those land in the `admin` bucket.
 _BLOCKER_PATTERNS = (
     "no meeting",
     "no calls",
@@ -51,27 +54,11 @@ _BLOCKER_PATTERNS = (
     "ooo",
     "vacation",
     "holiday",
+    "public holiday",
     "pto",
     "lunch",
-    "focus",
-    "deep work",
-    "deep-work",
-    "busy",
-    "blocked",
-    "blocker",
-    "personal work",
-    "personal time",
-    "summarize the day",
     "stand-in",
     "stand in",
-    "travel",
-    "train to",
-    "flight",
-    "drive home",
-    "drive to",
-    "commute",
-    "review consumption",
-    "check release notes",
 )
 
 
