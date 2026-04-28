@@ -12,6 +12,16 @@ export class ApiError extends Error {
         this.body = body;
     }
 }
+export interface ClassificationOut {
+    classification: "champion" | "supportive" | "blocking";
+    customer_id: string;
+    person_id: string;
+    updated_at: string;
+}
+export interface ClassificationUpsert {
+    classification: "champion" | "supportive" | "blocking" | null;
+    customer_id: string;
+}
 export interface ComplexValue {
     display?: string | null;
     primary?: boolean | null;
@@ -179,6 +189,110 @@ export function useCurrentUserSuspense<TData = {
         queryKey: currentUserKey(options?.params),
         queryFn: ()=>currentUser(options?.params),
         ...options?.query
+    });
+}
+export interface ListOntologyClassificationsParams {
+    customer_id: string;
+}
+export const listOntologyClassifications = async (params: ListOntologyClassificationsParams, options?: RequestInit): Promise<{
+    data: Record<string, string>;
+}> =>{
+    const searchParams = new URLSearchParams();
+    if (params.customer_id != null) searchParams.set("customer_id", String(params.customer_id));
+    const queryString = searchParams.toString();
+    const url = queryString ? `/api/ontology/classifications?${queryString}` : "/api/ontology/classifications";
+    const res = await fetch(url, {
+        ...options,
+        method: "GET"
+    });
+    if (!res.ok) {
+        const body = await res.text();
+        let parsed: unknown;
+        try {
+            parsed = JSON.parse(body);
+        } catch  {
+            parsed = body;
+        }
+        throw new ApiError(res.status, res.statusText, parsed);
+    }
+    return {
+        data: await res.json()
+    };
+};
+export const listOntologyClassificationsKey = (params?: ListOntologyClassificationsParams)=>{
+    return [
+        "/api/ontology/classifications",
+        params
+    ] as const;
+};
+export function useListOntologyClassifications<TData = {
+    data: Record<string, string>;
+}>(options: {
+    params: ListOntologyClassificationsParams;
+    query?: Omit<UseQueryOptions<{
+        data: Record<string, string>;
+    }, ApiError, TData>, "queryKey" | "queryFn">;
+}) {
+    return useQuery({
+        queryKey: listOntologyClassificationsKey(options.params),
+        queryFn: ()=>listOntologyClassifications(options.params),
+        ...options?.query
+    });
+}
+export function useListOntologyClassificationsSuspense<TData = {
+    data: Record<string, string>;
+}>(options: {
+    params: ListOntologyClassificationsParams;
+    query?: Omit<UseSuspenseQueryOptions<{
+        data: Record<string, string>;
+    }, ApiError, TData>, "queryKey" | "queryFn">;
+}) {
+    return useSuspenseQuery({
+        queryKey: listOntologyClassificationsKey(options.params),
+        queryFn: ()=>listOntologyClassifications(options.params),
+        ...options?.query
+    });
+}
+export interface UpsertOntologyClassificationParams {
+    person_id: string;
+}
+export const upsertOntologyClassification = async (params: UpsertOntologyClassificationParams, data: ClassificationUpsert, options?: RequestInit): Promise<{
+    data: ClassificationOut | null;
+}> =>{
+    const res = await fetch(`/api/ontology/classifications/${params.person_id}`, {
+        ...options,
+        method: "PUT",
+        headers: {
+            "Content-Type": "application/json",
+            ...options?.headers
+        },
+        body: JSON.stringify(data)
+    });
+    if (!res.ok) {
+        const body = await res.text();
+        let parsed: unknown;
+        try {
+            parsed = JSON.parse(body);
+        } catch  {
+            parsed = body;
+        }
+        throw new ApiError(res.status, res.statusText, parsed);
+    }
+    return {
+        data: await res.json()
+    };
+};
+export function useUpsertOntologyClassification(options?: {
+    mutation?: UseMutationOptions<{
+        data: ClassificationOut | null;
+    }, ApiError, {
+        params: UpsertOntologyClassificationParams;
+        data: ClassificationUpsert;
+    }>;
+}) {
+    return useMutation({
+        mutationFn: (vars)=>upsertOntologyClassification(vars.params, vars.data),
+        ...options?.mutation
     });
 }
 export const version = async (options?: RequestInit): Promise<{

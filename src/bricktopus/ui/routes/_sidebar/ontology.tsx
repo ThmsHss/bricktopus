@@ -2,6 +2,7 @@ import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { AlertCircle, Network } from "lucide-react";
 import { useOntology } from "@/hooks/use-overview";
+import { useClassifications } from "@/hooks/use-classifications";
 import {
   OntologyCanvas,
   type OntologyLayers,
@@ -23,6 +24,7 @@ export const Route = createFileRoute("/_sidebar/ontology")({
 
 function OntologyRoute() {
   const { data, isPending, error } = useOntology();
+  const { classifications } = useClassifications();
   const [layers, setLayers] = useState<OntologyLayers>({
     useCases: false,
     meetingNotes: false,
@@ -79,6 +81,7 @@ function OntologyRoute() {
             layers={layers}
             selectedNodeId={selectedId}
             onSelectNode={setSelectedId}
+            classifications={classifications}
           />
         </div>
       </div>

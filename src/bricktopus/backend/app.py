@@ -1,6 +1,7 @@
 import logging
 from datetime import date, datetime, timedelta, timezone
 
+from . import ontology_routes  # noqa: F401  # registers cache lifespan + routes
 from .cache import create_db_and_tables, get_session
 from .core import create_app
 from .mcp_clients import GoogleCalendarClient
@@ -20,13 +21,7 @@ app = create_app(
 
 @app.on_event("startup")
 async def _bootstrap_cache() -> None:
-    """Create cache tables, seed aliases, and prime the calendar cache.
-
-    The initial calendar sync covers Jan 1 of the current year through
-    today + 30 days so the time-spent panel has something to render on
-    first paint. Wrapped in try/except — a sync failure must not crash
-    the app.
-    """
+    """Create cache tables, seed aliases, and prime the calendar cache."""
     create_db_and_tables()
     gen = get_session()
     session = next(gen)

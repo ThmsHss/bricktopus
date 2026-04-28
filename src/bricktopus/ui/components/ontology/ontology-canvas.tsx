@@ -25,7 +25,8 @@ import {
   type MeetingNodeData,
   type UseCaseNodeData,
 } from "./overlay-nodes";
-import { ColumnHeader, GroupBand } from "./structure-nodes";
+import { ColumnHeader, GroupBand, GroupPanel } from "./structure-nodes";
+import type { Classification } from "@/lib/classification";
 
 export interface OntologyLayers {
   useCases: boolean;
@@ -37,6 +38,7 @@ interface OntologyCanvasProps {
   layers: OntologyLayers;
   selectedNodeId: string | null;
   onSelectNode: (id: string | null) => void;
+  classifications: Record<string, Classification>;
 }
 
 const nodeTypes: NodeTypes = {
@@ -45,6 +47,7 @@ const nodeTypes: NodeTypes = {
   meetingNote: MeetingNoteNode,
   groupBand: GroupBand,
   columnHeader: ColumnHeader,
+  groupPanel: GroupPanel,
 };
 
 export function OntologyCanvas({
@@ -52,6 +55,7 @@ export function OntologyCanvas({
   layers,
   selectedNodeId,
   onSelectNode,
+  classifications,
 }: OntologyCanvasProps) {
   const { allNodes, allEdges } = useMemo(() => {
     // Inject person-node interaction props into the swimlane layout output
@@ -62,6 +66,7 @@ export function OntologyCanvas({
         ...n,
         data: {
           ...(n.data ?? {}),
+          classification: classifications[n.id] ?? null,
           selected: selectedNodeId === n.id,
           onSelect: onSelectNode,
         },
@@ -183,7 +188,7 @@ export function OntologyCanvas({
       allNodes: [...personNodes, ...overlayNodes],
       allEdges: [...swimlane.edges, ...overlayEdges],
     };
-  }, [ontology, layers, selectedNodeId, onSelectNode]);
+  }, [ontology, layers, selectedNodeId, onSelectNode, classifications]);
 
   const layerKey = `${layers.useCases}-${layers.meetingNotes}`;
 

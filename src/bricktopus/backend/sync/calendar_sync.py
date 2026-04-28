@@ -6,7 +6,7 @@ import json
 from datetime import datetime, timezone
 from dataclasses import dataclass
 
-from sqlmodel import Session, select
+from sqlmodel import Session
 
 from ..cache.sources import CalendarEvent, SyncState
 from ..mcp_clients.google_calendar import GoogleCalendarClient
@@ -31,9 +31,9 @@ def sync_calendar(
 ) -> SyncResult:
     """Pull events from Calendar and upsert into the cache.
 
-    Customer attribution is applied here, so query consumers don't have to
-    redo it. The classifier (meeting type) is applied separately by the
-    time-spent feature.
+    Customer attribution and meeting-type classification are applied here so
+    query consumers don't redo them. Manual overrides (customer or type) are
+    preserved across re-syncs.
     """
     events = client.list_events(
         starts_after=starts_after,
@@ -88,8 +88,7 @@ def sync_calendar(
             )
             inserted += 1
         else:
-            # Don't overwrite a manually-set classification (covers both
-            # the customer mapping and the meeting-type label).
+            # Don't overwrite manually-set classification (customer or type).
             if existing.classification_source != "manual":
                 existing.customer_id = (
                     attribution.customer_id if attribution else None
