@@ -23,6 +23,7 @@ from ..services.attribution import _email_domain, _is_internal
 from ..services.llm import (
     ExtractedPerson,
     LLMNotConfigured,
+    SourceKind,
     get_llm_client,
 )
 
@@ -303,7 +304,7 @@ class ExtractionResponseOut(BaseModel):
     extraction_id: int
 
 
-def _classify_kind(content_type: str) -> tuple[str, str]:
+def _classify_kind(content_type: str) -> tuple[SourceKind, str]:
     """Map a multipart content-type to (kind, source_label).
 
     Returns (kind, source_tag) where source_tag is the value to feed
