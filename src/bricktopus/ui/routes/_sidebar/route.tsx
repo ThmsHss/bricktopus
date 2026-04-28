@@ -7,6 +7,7 @@ import {
   LayoutDashboard,
   LineChart,
   Network,
+  Sunrise,
 } from "lucide-react";
 import {
   SidebarGroup,
@@ -36,6 +37,12 @@ const sections: { label: string; items: NavItem[] }[] = [
         label: "Overview",
         icon: <LayoutDashboard size={16} />,
         match: (p) => p === "/overview" || p === "/",
+      },
+      {
+        to: "/plan-my-day",
+        label: "Plan my day",
+        icon: <Sunrise size={16} />,
+        match: (p) => p.startsWith("/plan-my-day"),
       },
       {
         to: "/ontology",
