@@ -35,6 +35,14 @@ export interface ComplexValue {
     type?: string | null;
     value?: string | null;
 }
+export interface ConnectInfoOut {
+    docs_url?: string | null;
+    instructions: string;
+    kind: "token" | "credentials" | "oauth-external";
+    label: string;
+    source: string;
+    title: string;
+}
 export interface CustomerBucketEntry {
     by_type: Record<string, number>;
     customer_id: string;
@@ -101,6 +109,14 @@ export interface Name {
     family_name?: string | null;
     given_name?: string | null;
 }
+export interface NotionConnectIn {
+    database_id?: string | null;
+    token: string;
+}
+export interface NotionConnectOut {
+    detail: string;
+    ok: boolean;
+}
 export interface NotionExcerpt {
     excerpt: string | null;
     id: string;
@@ -108,9 +124,21 @@ export interface NotionExcerpt {
     title: string;
     url: string | null;
 }
+export interface SalesforceConnectIn {
+    instance_url: string;
+    password: string;
+    security_token: string;
+    username: string;
+}
+export interface SalesforceConnectOut {
+    detail: string;
+    ok: boolean;
+}
 export interface SourceStatusOut {
     authenticated: boolean;
+    connect_kind: "token" | "credentials" | "oauth-external";
     detail: string;
+    label: string;
     mode: string;
     name: string;
 }
@@ -415,6 +443,198 @@ export function useGetDailyBriefingSuspense<TData = {
     return useSuspenseQuery({
         queryKey: getDailyBriefingKey(options?.params),
         queryFn: ()=>getDailyBriefing(options?.params),
+        ...options?.query
+    });
+}
+export const connectNotion = async (data: NotionConnectIn, options?: RequestInit): Promise<{
+    data: NotionConnectOut;
+}> =>{
+    const res = await fetch("/api/sources/connect/notion", {
+        ...options,
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            ...options?.headers
+        },
+        body: JSON.stringify(data)
+    });
+    if (!res.ok) {
+        const body = await res.text();
+        let parsed: unknown;
+        try {
+            parsed = JSON.parse(body);
+        } catch  {
+            parsed = body;
+        }
+        throw new ApiError(res.status, res.statusText, parsed);
+    }
+    return {
+        data: await res.json()
+    };
+};
+export function useConnectNotion(options?: {
+    mutation?: UseMutationOptions<{
+        data: NotionConnectOut;
+    }, ApiError, NotionConnectIn>;
+}) {
+    return useMutation({
+        mutationFn: (data)=>connectNotion(data),
+        ...options?.mutation
+    });
+}
+export const disconnectNotion = async (options?: RequestInit): Promise<{
+    data: NotionConnectOut;
+}> =>{
+    const res = await fetch("/api/sources/connect/notion", {
+        ...options,
+        method: "DELETE"
+    });
+    if (!res.ok) {
+        const body = await res.text();
+        let parsed: unknown;
+        try {
+            parsed = JSON.parse(body);
+        } catch  {
+            parsed = body;
+        }
+        throw new ApiError(res.status, res.statusText, parsed);
+    }
+    return {
+        data: await res.json()
+    };
+};
+export function useDisconnectNotion(options?: {
+    mutation?: UseMutationOptions<{
+        data: NotionConnectOut;
+    }, ApiError, void>;
+}) {
+    return useMutation({
+        mutationFn: ()=>disconnectNotion(),
+        ...options?.mutation
+    });
+}
+export const connectSalesforce = async (data: SalesforceConnectIn, options?: RequestInit): Promise<{
+    data: SalesforceConnectOut;
+}> =>{
+    const res = await fetch("/api/sources/connect/salesforce", {
+        ...options,
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            ...options?.headers
+        },
+        body: JSON.stringify(data)
+    });
+    if (!res.ok) {
+        const body = await res.text();
+        let parsed: unknown;
+        try {
+            parsed = JSON.parse(body);
+        } catch  {
+            parsed = body;
+        }
+        throw new ApiError(res.status, res.statusText, parsed);
+    }
+    return {
+        data: await res.json()
+    };
+};
+export function useConnectSalesforce(options?: {
+    mutation?: UseMutationOptions<{
+        data: SalesforceConnectOut;
+    }, ApiError, SalesforceConnectIn>;
+}) {
+    return useMutation({
+        mutationFn: (data)=>connectSalesforce(data),
+        ...options?.mutation
+    });
+}
+export const disconnectSalesforce = async (options?: RequestInit): Promise<{
+    data: SalesforceConnectOut;
+}> =>{
+    const res = await fetch("/api/sources/connect/salesforce", {
+        ...options,
+        method: "DELETE"
+    });
+    if (!res.ok) {
+        const body = await res.text();
+        let parsed: unknown;
+        try {
+            parsed = JSON.parse(body);
+        } catch  {
+            parsed = body;
+        }
+        throw new ApiError(res.status, res.statusText, parsed);
+    }
+    return {
+        data: await res.json()
+    };
+};
+export function useDisconnectSalesforce(options?: {
+    mutation?: UseMutationOptions<{
+        data: SalesforceConnectOut;
+    }, ApiError, void>;
+}) {
+    return useMutation({
+        mutationFn: ()=>disconnectSalesforce(),
+        ...options?.mutation
+    });
+}
+export interface ConnectInfoParams {
+    source: string;
+}
+export const connectInfo = async (params: ConnectInfoParams, options?: RequestInit): Promise<{
+    data: ConnectInfoOut;
+}> =>{
+    const res = await fetch(`/api/sources/connect/${params.source}/info`, {
+        ...options,
+        method: "GET"
+    });
+    if (!res.ok) {
+        const body = await res.text();
+        let parsed: unknown;
+        try {
+            parsed = JSON.parse(body);
+        } catch  {
+            parsed = body;
+        }
+        throw new ApiError(res.status, res.statusText, parsed);
+    }
+    return {
+        data: await res.json()
+    };
+};
+export const connectInfoKey = (params?: ConnectInfoParams)=>{
+    return [
+        "/api/sources/connect/{source}/info",
+        params
+    ] as const;
+};
+export function useConnectInfo<TData = {
+    data: ConnectInfoOut;
+}>(options: {
+    params: ConnectInfoParams;
+    query?: Omit<UseQueryOptions<{
+        data: ConnectInfoOut;
+    }, ApiError, TData>, "queryKey" | "queryFn">;
+}) {
+    return useQuery({
+        queryKey: connectInfoKey(options.params),
+        queryFn: ()=>connectInfo(options.params),
+        ...options?.query
+    });
+}
+export function useConnectInfoSuspense<TData = {
+    data: ConnectInfoOut;
+}>(options: {
+    params: ConnectInfoParams;
+    query?: Omit<UseSuspenseQueryOptions<{
+        data: ConnectInfoOut;
+    }, ApiError, TData>, "queryKey" | "queryFn">;
+}) {
+    return useSuspenseQuery({
+        queryKey: connectInfoKey(options.params),
+        queryFn: ()=>connectInfo(options.params),
         ...options?.query
     });
 }

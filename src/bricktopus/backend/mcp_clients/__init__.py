@@ -20,6 +20,7 @@ from .base import (
 from .google_calendar import GoogleCalendarClient
 from .gmail import GmailClient
 from .notion import NotionClient
+from .salesforce import SalesforceClient
 
 __all__ = [
     "CalendarEventDTO",
@@ -30,4 +31,5 @@ __all__ = [
     "GoogleCalendarClient",
     "GmailClient",
     "NotionClient",
+    "SalesforceClient",
 ]

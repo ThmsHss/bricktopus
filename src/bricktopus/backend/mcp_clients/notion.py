@@ -15,6 +15,7 @@ from typing import Optional
 
 import httpx
 
+from ..services import secrets
 from .base import NotionPageDTO, SourceMode, SourceStatus
 
 NOTION_API = "https://api.notion.com/v1"
@@ -26,8 +27,7 @@ DEFAULT_DB_ID = os.environ.get(
 
 
 def _token() -> Optional[str]:
-    tok = os.environ.get("NOTION_TOKEN")
-    return tok.strip() if tok else None
+    return secrets.get("notion_token", env_var="NOTION_TOKEN")
 
 
 class NotionClient:

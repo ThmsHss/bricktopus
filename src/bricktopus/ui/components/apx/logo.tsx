@@ -4,19 +4,21 @@ interface LogoProps {
   to?: string;
   className?: string;
   showText?: boolean;
-  size?: "sm" | "md" | "lg";
+  size?: "sm" | "md" | "lg" | "xl";
 }
 
 const sizeMap = {
   sm: "h-7 w-7",
   md: "h-9 w-9",
   lg: "h-16 w-16",
+  xl: "h-24 w-24",
 };
 
 const textSizeMap = {
   sm: "text-base",
   md: "text-lg",
   lg: "text-xl",
+  xl: "text-2xl",
 };
 
 export function Logo({

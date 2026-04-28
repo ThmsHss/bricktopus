@@ -15,6 +15,7 @@ import { ModeToggle } from "@/components/apx/mode-toggle";
 import { CustomerPicker } from "@/components/apx/customer-picker";
 import { DataModeToggle } from "@/components/apx/data-mode-toggle";
 import Logo from "@/components/apx/logo";
+import { SourcesSection } from "@/components/apx/sources-section";
 import { Separator } from "@/components/ui/separator";
 
 interface SidebarLayoutProps {
@@ -26,14 +27,17 @@ function SidebarLayout({ children }: SidebarLayoutProps) {
     <SidebarProvider>
       <Sidebar>
         <SidebarHeader>
-          <div className="flex flex-col items-center gap-2 px-2 py-4">
-            <Logo size="lg" showText={false} />
-            <span className="font-display text-base tracking-tight">
+          <div className="flex flex-col items-center gap-2.5 px-2 py-5">
+            <Logo size="xl" showText={false} />
+            <span className="font-display text-lg tracking-tight">
               Bricktopus
             </span>
           </div>
         </SidebarHeader>
-        <SidebarContent>{children}</SidebarContent>
+        <SidebarContent>
+          {children}
+          <SourcesSection />
+        </SidebarContent>
         <SidebarFooter>
           <SidebarUserFooter />
         </SidebarFooter>
