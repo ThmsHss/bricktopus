@@ -23,13 +23,23 @@ export interface GroupPanelData extends Record<string, unknown> {
 }
 
 /**
- * Neutral background panel that visually anchors a group of columns.
- * No saturated tint — section identity comes from the band label and the
- * subtle border/bg contrast against the canvas.
+ * Tinted background panel that visually anchors a group of columns.
+ * Central IT and Business Units get distinct tints so the boundaries are
+ * obvious at a glance without overwhelming the people cards.
  */
-export function GroupPanel({ data: _data }: { data: GroupPanelData }) {
+const panelToneClass: Record<GroupPanelData["tone"], string> = {
+  "central-it": "border-chart-2/40 bg-chart-2/[0.06]",
+  "business-units": "border-primary/35 bg-primary/[0.05]",
+};
+
+export function GroupPanel({ data }: { data: GroupPanelData }) {
   return (
-    <div className="pointer-events-none h-full w-full rounded-2xl border border-border/70 bg-card/30" />
+    <div
+      className={cn(
+        "pointer-events-none h-full w-full rounded-2xl border-[1.5px] shadow-sm",
+        panelToneClass[data.tone],
+      )}
+    />
   );
 }
 
