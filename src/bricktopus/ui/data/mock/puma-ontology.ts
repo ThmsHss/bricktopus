@@ -2,12 +2,71 @@ import type { OntologyBundle } from "../types";
 
 export const pumaOntology: OntologyBundle = {
   customerId: "puma",
+  orgUnits: [
+    {
+      id: "ou-exec",
+      name: "Executive",
+      group: "Executive",
+      description: "Office of the CTO",
+      order: 0,
+    },
+    {
+      id: "ou-platform",
+      name: "Data Platform",
+      group: "Central IT",
+      description: "Lakehouse, governance, lineage, security.",
+      order: 0,
+    },
+    {
+      id: "ou-cdp",
+      name: "Customer Data Platform",
+      group: "Central IT",
+      description: "Identity, consent, audience activation.",
+      order: 1,
+    },
+    {
+      id: "ou-merch",
+      name: "Merchandising",
+      group: "Business Unit",
+      description: "Buying, allocation, pricing, assortment.",
+      order: 0,
+    },
+    {
+      id: "ou-ecom",
+      name: "eCommerce",
+      group: "Business Unit",
+      description: "Site search, recs, catalog, conversion.",
+      order: 1,
+    },
+    {
+      id: "ou-supply",
+      name: "Supply Chain",
+      group: "Business Unit",
+      description: "Inventory, distribution, OTIF, replenishment.",
+      order: 2,
+    },
+    {
+      id: "ou-stores",
+      name: "Retail Stores",
+      group: "Business Unit",
+      description: "Stores tech, POS analytics, labor planning.",
+      order: 3,
+    },
+    {
+      id: "ou-mktech",
+      name: "Marketing Tech",
+      group: "Business Unit",
+      description: "Audience activation, campaign measurement.",
+      order: 4,
+    },
+  ],
   persons: [
     {
       id: "p-klaus",
       name: "Klaus Vogel",
       title: "Chief Technology Officer",
       team: "Executive",
+      orgUnitId: "ou-exec",
       reportsTo: null,
       persona: {
         type: "explorer",
@@ -28,6 +87,7 @@ export const pumaOntology: OntologyBundle = {
       name: "Felix Hoffmann",
       title: "Head of Data Platform",
       team: "Data Platform",
+      orgUnitId: "ou-platform",
       reportsTo: "p-klaus",
       persona: {
         type: "champion",
@@ -49,6 +109,7 @@ export const pumaOntology: OntologyBundle = {
       name: "Tom Becker",
       title: "Lead Data Engineer, eCom",
       team: "eCommerce",
+      orgUnitId: "ou-ecom",
       reportsTo: "p-felix",
       persona: {
         type: "skeptic",
@@ -68,6 +129,7 @@ export const pumaOntology: OntologyBundle = {
       name: "Sarah Wagner",
       title: "Senior Data Engineer, Identity",
       team: "Data Platform",
+      orgUnitId: "ou-platform",
       reportsTo: "p-felix",
       persona: {
         type: "ally",
@@ -86,6 +148,7 @@ export const pumaOntology: OntologyBundle = {
       name: "Anita Schmidt",
       title: "VP, Merchandising Analytics",
       team: "Merchandising",
+      orgUnitId: "ou-merch",
       reportsTo: "p-klaus",
       persona: {
         type: "ally",
@@ -105,6 +168,7 @@ export const pumaOntology: OntologyBundle = {
       name: "Marie Klein",
       title: "Senior Analyst, Merchandising",
       team: "Merchandising",
+      orgUnitId: "ou-merch",
       reportsTo: "p-anita",
       persona: {
         type: "explorer",
@@ -122,6 +186,7 @@ export const pumaOntology: OntologyBundle = {
       name: "Lina Park",
       title: "Director, Customer Data",
       team: "CDP",
+      orgUnitId: "ou-cdp",
       reportsTo: "p-klaus",
       persona: {
         type: "ally",
@@ -140,6 +205,7 @@ export const pumaOntology: OntologyBundle = {
       name: "Karim Toure",
       title: "Engineer, Customer Data Platform",
       team: "CDP",
+      orgUnitId: "ou-cdp",
       reportsTo: "p-lina",
       persona: {
         type: "ally",
@@ -158,6 +224,7 @@ export const pumaOntology: OntologyBundle = {
       name: "Helena Vogel",
       title: "VP, Supply Chain Tech",
       team: "Supply Chain",
+      orgUnitId: "ou-supply",
       reportsTo: "p-klaus",
       persona: {
         type: "blocker",
@@ -175,6 +242,7 @@ export const pumaOntology: OntologyBundle = {
       name: "Bruno Costa",
       title: "Lead Engineer, SCM Platform",
       team: "Supply Chain",
+      orgUnitId: "ou-supply",
       reportsTo: "p-helena",
       persona: {
         type: "unknown",
@@ -194,6 +262,7 @@ export const pumaOntology: OntologyBundle = {
       name: "VP, Retail Stores Tech (vacant in our map)",
       title: "VP, Retail Stores Tech",
       team: "Retail Stores",
+      orgUnitId: "ou-stores",
       reportsTo: "p-klaus",
       persona: {
         type: "unknown",
@@ -211,6 +280,7 @@ export const pumaOntology: OntologyBundle = {
       name: "Head of Marketing Tech (gap)",
       title: "Head of Marketing Tech",
       team: "Marketing Tech",
+      orgUnitId: "ou-mktech",
       reportsTo: "p-klaus",
       persona: {
         type: "unknown",
@@ -272,6 +342,7 @@ export const pumaOntology: OntologyBundle = {
       primarySku: "DLT Serverless",
       description:
         "Cross-channel identity resolution shipped in April. Driving the +31% DLT spike.",
+      workspaceIds: ["w-eu-prod", "w-data-platform"],
     },
     {
       id: "u-merch-forecast",
@@ -281,6 +352,7 @@ export const pumaOntology: OntologyBundle = {
       valueChainFunction: "Merchandising",
       primarySku: "Jobs Compute",
       description: "ML forecasting for buy-plan allocations, target Q3.",
+      workspaceIds: ["w-eu-prod"],
     },
     {
       id: "u-genie-merch",
@@ -291,6 +363,7 @@ export const pumaOntology: OntologyBundle = {
       primarySku: "Genie",
       description:
         "Self-serve querying for merch analysts. Currently dormant — needs re-engagement.",
+      workspaceIds: ["w-sandbox"],
     },
     {
       id: "u-catalog-cache",
@@ -300,6 +373,7 @@ export const pumaOntology: OntologyBundle = {
       valueChainFunction: "eCommerce",
       primarySku: "Lakebase",
       description: "Open opportunity flagged from the Slack latency thread.",
+      workspaceIds: ["w-eu-prod", "w-na-prod"],
     },
     {
       id: "u-recsys",
@@ -309,6 +383,7 @@ export const pumaOntology: OntologyBundle = {
       valueChainFunction: "eCommerce",
       primarySku: "Mosaic AI",
       description: "Ranking model, deferred from Q2 to Q3.",
+      workspaceIds: ["w-eu-prod", "w-na-prod"],
     },
     {
       id: "u-supply-event",
@@ -319,6 +394,7 @@ export const pumaOntology: OntologyBundle = {
       primarySku: "DLT",
       description:
         "No sponsor today — Helena blocks. Bruno is the most likely entry point.",
+      workspaceIds: [],
     },
   ],
   meetingNotes: [

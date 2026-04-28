@@ -10,7 +10,7 @@ interface LogoProps {
 const sizeMap = {
   sm: "h-7 w-7",
   md: "h-9 w-9",
-  lg: "h-12 w-12",
+  lg: "h-16 w-16",
 };
 
 const textSizeMap = {

@@ -26,8 +26,11 @@ function SidebarLayout({ children }: SidebarLayoutProps) {
     <SidebarProvider>
       <Sidebar>
         <SidebarHeader>
-          <div className="px-2 py-3">
-            <Logo size="md" />
+          <div className="flex flex-col items-center gap-2 px-2 py-4">
+            <Logo size="lg" showText={false} />
+            <span className="font-display text-base tracking-tight">
+              Bricktopus
+            </span>
           </div>
         </SidebarHeader>
         <SidebarContent>{children}</SidebarContent>
@@ -46,7 +49,7 @@ function SidebarLayout({ children }: SidebarLayoutProps) {
           <ModeToggle />
         </header>
         <div className="flex-1 overflow-auto">
-          <div className="mx-auto w-full max-w-7xl px-6 py-8">
+          <div className="mx-auto w-full max-w-[1600px] px-6 py-8">
             <Outlet />
           </div>
         </div>

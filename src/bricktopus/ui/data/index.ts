@@ -21,6 +21,8 @@ export type {
   OntologyWorkspace,
   OpenTask,
   OrgPerson,
+  OrgUnit,
+  OrgUnitGroup,
   OverviewBundle,
   PeerBenchmark,
   PeerSignal,

@@ -32,7 +32,7 @@ export function NbaCard({ actions }: NbaCardProps) {
       <CardHeader className="space-y-1.5">
         <div className="flex items-center gap-2 text-xs uppercase tracking-[0.18em] text-muted-foreground">
           <Compass className="h-3.5 w-3.5 text-primary" />
-          Octopus suggests
+          Bricktopus suggests
         </div>
         <CardTitle className="font-serif text-2xl">Next best moves</CardTitle>
         <CardDescription>

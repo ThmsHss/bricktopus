@@ -151,11 +151,24 @@ export interface Persona {
   communicationStyle?: string;
 }
 
+export type OrgUnitGroup = "Executive" | "Central IT" | "Business Unit";
+
+export interface OrgUnit {
+  id: string;
+  name: string;
+  group: OrgUnitGroup;
+  description?: string;
+  /** Display order within its group, low first. */
+  order?: number;
+}
+
 export interface OrgPerson {
   id: string;
   name: string;
   title: string;
   team: string;
+  /** Which org unit (BU, Central IT lane, or Executive) this person sits in. */
+  orgUnitId: string;
   reportsTo: string | null;
   persona: Persona;
   supportRating: number; // 0–5: how supportive of Databricks
@@ -190,6 +203,8 @@ export interface OntologyUseCase {
   valueChainFunction: string;
   primarySku?: string;
   description?: string;
+  /** Workspaces this use case runs on. */
+  workspaceIds?: string[];
 }
 
 export interface MeetingNoteSummary {
@@ -229,6 +244,7 @@ export interface PeerBenchmark {
 
 export interface OntologyBundle {
   customerId: CustomerId;
+  orgUnits: OrgUnit[];
   persons: OrgPerson[];
   workspaces: OntologyWorkspace[];
   useCases: OntologyUseCase[];

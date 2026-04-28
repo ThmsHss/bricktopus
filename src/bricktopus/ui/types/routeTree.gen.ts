@@ -11,12 +11,11 @@
 import { Route as rootRouteImport } from './../routes/__root'
 import { Route as SidebarRouteRouteImport } from './../routes/_sidebar/route'
 import { Route as IndexRouteImport } from './../routes/index'
-import { Route as SidebarUseCasesRouteImport } from './../routes/_sidebar/use-cases'
 import { Route as SidebarTasksRouteImport } from './../routes/_sidebar/tasks'
 import { Route as SidebarOverviewRouteImport } from './../routes/_sidebar/overview'
+import { Route as SidebarOntologyRouteImport } from './../routes/_sidebar/ontology'
 import { Route as SidebarMeetingsRouteImport } from './../routes/_sidebar/meetings'
 import { Route as SidebarConsumptionRouteImport } from './../routes/_sidebar/consumption'
-import { Route as SidebarActivityRouteImport } from './../routes/_sidebar/activity'
 import { Route as SidebarAccountOrgRouteImport } from './../routes/_sidebar/account-org'
 
 const SidebarRouteRoute = SidebarRouteRouteImport.update({
@@ -28,11 +27,6 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const SidebarUseCasesRoute = SidebarUseCasesRouteImport.update({
-  id: '/use-cases',
-  path: '/use-cases',
-  getParentRoute: () => SidebarRouteRoute,
-} as any)
 const SidebarTasksRoute = SidebarTasksRouteImport.update({
   id: '/tasks',
   path: '/tasks',
@@ -41,6 +35,11 @@ const SidebarTasksRoute = SidebarTasksRouteImport.update({
 const SidebarOverviewRoute = SidebarOverviewRouteImport.update({
   id: '/overview',
   path: '/overview',
+  getParentRoute: () => SidebarRouteRoute,
+} as any)
+const SidebarOntologyRoute = SidebarOntologyRouteImport.update({
+  id: '/ontology',
+  path: '/ontology',
   getParentRoute: () => SidebarRouteRoute,
 } as any)
 const SidebarMeetingsRoute = SidebarMeetingsRouteImport.update({
@@ -53,11 +52,6 @@ const SidebarConsumptionRoute = SidebarConsumptionRouteImport.update({
   path: '/consumption',
   getParentRoute: () => SidebarRouteRoute,
 } as any)
-const SidebarActivityRoute = SidebarActivityRouteImport.update({
-  id: '/activity',
-  path: '/activity',
-  getParentRoute: () => SidebarRouteRoute,
-} as any)
 const SidebarAccountOrgRoute = SidebarAccountOrgRouteImport.update({
   id: '/account-org',
   path: '/account-org',
@@ -67,67 +61,61 @@ const SidebarAccountOrgRoute = SidebarAccountOrgRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/account-org': typeof SidebarAccountOrgRoute
-  '/activity': typeof SidebarActivityRoute
   '/consumption': typeof SidebarConsumptionRoute
   '/meetings': typeof SidebarMeetingsRoute
+  '/ontology': typeof SidebarOntologyRoute
   '/overview': typeof SidebarOverviewRoute
   '/tasks': typeof SidebarTasksRoute
-  '/use-cases': typeof SidebarUseCasesRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/account-org': typeof SidebarAccountOrgRoute
-  '/activity': typeof SidebarActivityRoute
   '/consumption': typeof SidebarConsumptionRoute
   '/meetings': typeof SidebarMeetingsRoute
+  '/ontology': typeof SidebarOntologyRoute
   '/overview': typeof SidebarOverviewRoute
   '/tasks': typeof SidebarTasksRoute
-  '/use-cases': typeof SidebarUseCasesRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/_sidebar': typeof SidebarRouteRouteWithChildren
   '/_sidebar/account-org': typeof SidebarAccountOrgRoute
-  '/_sidebar/activity': typeof SidebarActivityRoute
   '/_sidebar/consumption': typeof SidebarConsumptionRoute
   '/_sidebar/meetings': typeof SidebarMeetingsRoute
+  '/_sidebar/ontology': typeof SidebarOntologyRoute
   '/_sidebar/overview': typeof SidebarOverviewRoute
   '/_sidebar/tasks': typeof SidebarTasksRoute
-  '/_sidebar/use-cases': typeof SidebarUseCasesRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
     | '/account-org'
-    | '/activity'
     | '/consumption'
     | '/meetings'
+    | '/ontology'
     | '/overview'
     | '/tasks'
-    | '/use-cases'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/account-org'
-    | '/activity'
     | '/consumption'
     | '/meetings'
+    | '/ontology'
     | '/overview'
     | '/tasks'
-    | '/use-cases'
   id:
     | '__root__'
     | '/'
     | '/_sidebar'
     | '/_sidebar/account-org'
-    | '/_sidebar/activity'
     | '/_sidebar/consumption'
     | '/_sidebar/meetings'
+    | '/_sidebar/ontology'
     | '/_sidebar/overview'
     | '/_sidebar/tasks'
-    | '/_sidebar/use-cases'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -151,13 +139,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_sidebar/use-cases': {
-      id: '/_sidebar/use-cases'
-      path: '/use-cases'
-      fullPath: '/use-cases'
-      preLoaderRoute: typeof SidebarUseCasesRouteImport
-      parentRoute: typeof SidebarRouteRoute
-    }
     '/_sidebar/tasks': {
       id: '/_sidebar/tasks'
       path: '/tasks'
@@ -170,6 +151,13 @@ declare module '@tanstack/react-router' {
       path: '/overview'
       fullPath: '/overview'
       preLoaderRoute: typeof SidebarOverviewRouteImport
+      parentRoute: typeof SidebarRouteRoute
+    }
+    '/_sidebar/ontology': {
+      id: '/_sidebar/ontology'
+      path: '/ontology'
+      fullPath: '/ontology'
+      preLoaderRoute: typeof SidebarOntologyRouteImport
       parentRoute: typeof SidebarRouteRoute
     }
     '/_sidebar/meetings': {
@@ -186,13 +174,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SidebarConsumptionRouteImport
       parentRoute: typeof SidebarRouteRoute
     }
-    '/_sidebar/activity': {
-      id: '/_sidebar/activity'
-      path: '/activity'
-      fullPath: '/activity'
-      preLoaderRoute: typeof SidebarActivityRouteImport
-      parentRoute: typeof SidebarRouteRoute
-    }
     '/_sidebar/account-org': {
       id: '/_sidebar/account-org'
       path: '/account-org'
@@ -205,22 +186,20 @@ declare module '@tanstack/react-router' {
 
 interface SidebarRouteRouteChildren {
   SidebarAccountOrgRoute: typeof SidebarAccountOrgRoute
-  SidebarActivityRoute: typeof SidebarActivityRoute
   SidebarConsumptionRoute: typeof SidebarConsumptionRoute
   SidebarMeetingsRoute: typeof SidebarMeetingsRoute
+  SidebarOntologyRoute: typeof SidebarOntologyRoute
   SidebarOverviewRoute: typeof SidebarOverviewRoute
   SidebarTasksRoute: typeof SidebarTasksRoute
-  SidebarUseCasesRoute: typeof SidebarUseCasesRoute
 }
 
 const SidebarRouteRouteChildren: SidebarRouteRouteChildren = {
   SidebarAccountOrgRoute: SidebarAccountOrgRoute,
-  SidebarActivityRoute: SidebarActivityRoute,
   SidebarConsumptionRoute: SidebarConsumptionRoute,
   SidebarMeetingsRoute: SidebarMeetingsRoute,
+  SidebarOntologyRoute: SidebarOntologyRoute,
   SidebarOverviewRoute: SidebarOverviewRoute,
   SidebarTasksRoute: SidebarTasksRoute,
-  SidebarUseCasesRoute: SidebarUseCasesRoute,
 }
 
 const SidebarRouteRouteWithChildren = SidebarRouteRoute._addFileChildren(

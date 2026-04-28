@@ -2,12 +2,10 @@ import SidebarLayout from "@/components/apx/sidebar-layout";
 import { createFileRoute, Link, useLocation } from "@tanstack/react-router";
 import { cn } from "@/lib/utils";
 import {
-  Activity,
   CalendarDays,
   CheckSquare,
   LayoutDashboard,
   LineChart,
-  Lightbulb,
   Network,
 } from "lucide-react";
 import {
@@ -40,33 +38,17 @@ const sections: { label: string; items: NavItem[] }[] = [
         match: (p) => p === "/overview" || p === "/",
       },
       {
-        to: "/account-org",
-        label: "Account & Org",
+        to: "/ontology",
+        label: "Ontology",
         icon: <Network size={16} />,
-        match: (p) => p.startsWith("/account-org"),
+        match: (p) =>
+          p.startsWith("/ontology") || p.startsWith("/account-org"),
       },
       {
         to: "/consumption",
         label: "Consumption",
         icon: <LineChart size={16} />,
         match: (p) => p.startsWith("/consumption"),
-      },
-    ],
-  },
-  {
-    label: "Pipeline",
-    items: [
-      {
-        to: "/use-cases",
-        label: "Use cases",
-        icon: <Lightbulb size={16} />,
-        match: (p) => p.startsWith("/use-cases"),
-      },
-      {
-        to: "/activity",
-        label: "Activity",
-        icon: <Activity size={16} />,
-        match: (p) => p.startsWith("/activity"),
       },
     ],
   },
