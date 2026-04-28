@@ -134,7 +134,6 @@ function OntologyRoute() {
               }
             />
           </div>
-          </div>
           <div className="text-[10px] uppercase tracking-wider text-muted-foreground">
             {stats}
           </div>
