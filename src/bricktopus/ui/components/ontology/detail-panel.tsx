@@ -4,6 +4,7 @@ import {
   ExternalLink,
   FileText,
   Lightbulb,
+  Loader2,
   X,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
@@ -19,6 +20,16 @@ import type {
   OrgPerson,
 } from "@/data";
 import { formatRelativeDays } from "@/lib/format";
+import {
+  CLASSIFICATIONS,
+  CLASSIFICATION_META,
+  resolveClassification,
+  type Classification,
+} from "@/lib/classification";
+import {
+  useClassifications,
+  useSetClassification,
+} from "@/hooks/use-classifications";
 
 interface DetailPanelProps {
   ontology: OntologyBundle;
@@ -192,9 +203,6 @@ function PersonDetail({
           {person.title} · {person.team}
         </p>
         <div className="flex flex-wrap items-center gap-1.5 pt-1">
-          <Badge variant="outline" className="text-[10px] uppercase tracking-wider">
-            {person.persona.type}
-          </Badge>
           <Badge variant="outline" className="text-[10px] tracking-wider">
             Last contact: {formatRelativeDays(person.lastInteractionDays)}
           </Badge>
@@ -209,6 +217,7 @@ function PersonDetail({
         </div>
       </header>
       <Separator />
+      <ClassificationPicker person={person} />
       <Section label="Persona summary">
         <p className="text-sm leading-relaxed text-foreground/90">
           {person.persona.summary}
@@ -227,14 +236,6 @@ function PersonDetail({
           </div>
         )}
       </Section>
-      <div className="grid grid-cols-2 gap-3">
-        <Section label="Support">
-          <RatingBar value={person.supportRating} tone="success" />
-        </Section>
-        <Section label="Connection">
-          <RatingBar value={person.connectionStrength} tone="primary" />
-        </Section>
-      </div>
       {person.notes && (
         <Section label="Notes">
           <p className="text-xs leading-relaxed text-muted-foreground">
@@ -497,28 +498,76 @@ function MeetingNoteDetail({
   );
 }
 
-function RatingBar({
-  value,
-  tone,
-}: {
-  value: number;
-  tone: "success" | "primary";
-}) {
-  const pct = (value / 5) * 100;
+function ClassificationPicker({ person }: { person: OrgPerson }) {
+  const { classifications } = useClassifications();
+  const setClassification = useSetClassification();
+  const manual = classifications[person.id] ?? null;
+  const effective = resolveClassification(person.persona.type, manual);
+  const isPending = setClassification.isPending;
+
+  const choose = (next: Classification | null) => {
+    if (isPending) return;
+    setClassification.mutate({ personId: person.id, classification: next });
+  };
+
   return (
-    <div className="space-y-1">
-      <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
+    <Section label="Classification">
+      <div className="space-y-2">
         <div
-          className={cn(
-            "h-full rounded-full",
-            tone === "success" ? "bg-success" : "bg-primary",
-          )}
-          style={{ width: `${pct}%` }}
-        />
+          className="grid grid-cols-3 gap-1.5"
+          role="radiogroup"
+          aria-label="Person classification"
+        >
+          {CLASSIFICATIONS.map((value) => {
+            const meta = CLASSIFICATION_META[value];
+            const active = effective === value;
+            return (
+              <button
+                key={value}
+                type="button"
+                role="radio"
+                aria-checked={active}
+                disabled={isPending}
+                onClick={() => choose(value)}
+                className={cn(
+                  "flex h-9 items-center justify-center rounded-md border px-2 text-[11px] font-medium uppercase tracking-[0.14em] transition-colors",
+                  "focus:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                  active
+                    ? meta.solid
+                    : cn(
+                        meta.tone,
+                        "hover:bg-foreground/[0.04]",
+                      ),
+                  isPending && "opacity-60",
+                )}
+              >
+                {meta.label}
+              </button>
+            );
+          })}
+        </div>
+        <div className="flex items-center justify-between gap-2">
+          <span className="text-[10px] text-muted-foreground">
+            {manual === null && effective !== null
+              ? `Suggested from persona: ${effective}`
+              : manual === null
+                ? "Not classified yet"
+                : "Set manually"}
+          </span>
+          <button
+            type="button"
+            onClick={() => choose(null)}
+            disabled={isPending || manual === null}
+            className={cn(
+              "inline-flex items-center gap-1 text-[10px] uppercase tracking-wider text-muted-foreground",
+              "hover:text-foreground disabled:opacity-40",
+            )}
+          >
+            {isPending && <Loader2 className="h-3 w-3 animate-spin" />}
+            Clear
+          </button>
+        </div>
       </div>
-      <span className="font-mono text-[11px] tabular-nums text-muted-foreground">
-        {value.toFixed(1)} / 5
-      </span>
-    </div>
+    </Section>
   );
 }
