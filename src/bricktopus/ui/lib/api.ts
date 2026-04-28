@@ -18,6 +18,11 @@ export interface AttendeeBriefing {
     email: string;
     is_internal: boolean;
 }
+export interface Body_extractPeopleFromUpload {
+    commit?: boolean;
+    customer_id?: string | null;
+    file: string;
+}
 export interface ClassificationOut {
     classification: "champion" | "supportive" | "blocking";
     customer_id: string;
@@ -81,6 +86,21 @@ export interface EmailExcerpt {
     participant_count: number;
     snippet: string | null;
     subject: string;
+}
+export interface ExtractedPersonOut {
+    confidence: number;
+    email: string | null;
+    manager_name: string | null;
+    name: string | null;
+    ready_to_upsert: boolean;
+    team: string | null;
+    title: string | null;
+}
+export interface ExtractionResponseOut {
+    committed: number;
+    extraction_id: number;
+    model: string;
+    people: ExtractedPersonOut[];
 }
 export interface HTTPValidationError {
     detail?: ValidationError[];
@@ -173,6 +193,14 @@ export interface SalesforceConnectIn {
 export interface SalesforceConnectOut {
     detail: string;
     ok: boolean;
+}
+export interface ScanResultOut {
+    calendar_events_visited: number;
+    email_threads_visited: number;
+    finished_at: string;
+    persons_inserted: number;
+    persons_updated: number;
+    started_at: string;
 }
 export interface SourceStatusOut {
     authenticated: boolean;
@@ -421,6 +449,41 @@ export function useUpsertOntologyClassification(options?: {
 }) {
     return useMutation({
         mutationFn: (vars)=>upsertOntologyClassification(vars.params, vars.data),
+        ...options?.mutation
+    });
+}
+export const extractPeopleFromUpload = async (data: FormData, options?: RequestInit): Promise<{
+    data: ExtractionResponseOut;
+}> =>{
+    const res = await fetch("/api/ontology/extract", {
+        ...options,
+        method: "POST",
+        headers: {
+            ...options?.headers
+        },
+        body: data
+    });
+    if (!res.ok) {
+        const body = await res.text();
+        let parsed: unknown;
+        try {
+            parsed = JSON.parse(body);
+        } catch  {
+            parsed = body;
+        }
+        throw new ApiError(res.status, res.statusText, parsed);
+    }
+    return {
+        data: await res.json()
+    };
+};
+export function useExtractPeopleFromUpload(options?: {
+    mutation?: UseMutationOptions<{
+        data: ExtractionResponseOut;
+    }, ApiError, FormData>;
+}) {
+    return useMutation({
+        mutationFn: (data)=>extractPeopleFromUpload(data),
         ...options?.mutation
     });
 }
@@ -676,6 +739,37 @@ export function useDeleteOrgPerson(options?: {
 }) {
     return useMutation({
         mutationFn: (vars)=>deleteOrgPerson(vars.params),
+        ...options?.mutation
+    });
+}
+export const scanOntology = async (options?: RequestInit): Promise<{
+    data: ScanResultOut;
+}> =>{
+    const res = await fetch("/api/ontology/scan", {
+        ...options,
+        method: "POST"
+    });
+    if (!res.ok) {
+        const body = await res.text();
+        let parsed: unknown;
+        try {
+            parsed = JSON.parse(body);
+        } catch  {
+            parsed = body;
+        }
+        throw new ApiError(res.status, res.statusText, parsed);
+    }
+    return {
+        data: await res.json()
+    };
+};
+export function useScanOntology(options?: {
+    mutation?: UseMutationOptions<{
+        data: ScanResultOut;
+    }, ApiError, void>;
+}) {
+    return useMutation({
+        mutationFn: ()=>scanOntology(),
         ...options?.mutation
     });
 }

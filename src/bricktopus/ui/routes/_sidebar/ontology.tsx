@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
-import { AlertCircle, Loader2, Network, Scan } from "lucide-react";
+import { AlertCircle, Loader2, Network, Scan, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { useOntology } from "@/hooks/use-overview";
 import { useClassifications } from "@/hooks/use-classifications";
 import { useScanPeople } from "@/hooks/use-people";
+import { useBricktopus } from "@/data/context";
 import {
   OntologyCanvas,
   type OntologyLayers,
@@ -13,6 +14,7 @@ import { LayerToggles } from "@/components/ontology/layer-toggles";
 import { DetailPanel } from "@/components/ontology/detail-panel";
 import { GapPanel } from "@/components/ontology/gap-panel";
 import { PeerPanel } from "@/components/ontology/peer-panel";
+import { ImportDialog } from "@/components/ontology/import-dialog";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -29,11 +31,13 @@ function OntologyRoute() {
   const { data, isPending, error } = useOntology();
   const { classifications } = useClassifications();
   const scan = useScanPeople();
+  const { customerId } = useBricktopus();
   const [layers, setLayers] = useState<OntologyLayers>({
     useCases: false,
     meetingNotes: false,
   });
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [importOpen, setImportOpen] = useState(false);
 
   const handleScan = () => {
     scan.mutate(undefined, {
@@ -105,7 +109,18 @@ function OntologyRoute() {
 
       <div className="flex flex-col gap-3 rounded-xl border bg-card/40 p-3">
         <div className="flex flex-wrap items-center justify-between gap-3 px-1">
-          <LayerToggles layers={layers} onChange={setLayers} />
+          <div className="flex flex-wrap items-center gap-3">
+            <LayerToggles layers={layers} onChange={setLayers} />
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setImportOpen(true)}
+              className="gap-1.5 rounded-full"
+            >
+              <Upload className="h-3.5 w-3.5" />
+              Import
+            </Button>
+          </div>
           <div className="text-[10px] uppercase tracking-wider text-muted-foreground">
             {stats}
           </div>
@@ -129,6 +144,12 @@ function OntologyRoute() {
           <PeerPanel peers={data.peers} />
         </div>
       </div>
+
+      <ImportDialog
+        open={importOpen}
+        onOpenChange={setImportOpen}
+        defaultCustomerId={customerId}
+      />
 
       <Sheet
         open={selectedId !== null}

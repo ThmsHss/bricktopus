@@ -8,17 +8,24 @@ consistent.
 from __future__ import annotations
 
 import logging
+import re
 from datetime import datetime, timezone
 from typing import Optional
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, File, Form, HTTPException, UploadFile
 from pydantic import BaseModel, Field
 from sqlmodel import select
 
 from ..cache import session_dependency
-from ..cache.people import OrgPerson
+from ..cache.people import OrgExtraction, OrgPerson
 from ..services import secrets
 from ..services.attribution import _email_domain, _is_internal
+from ..services.llm import (
+    ExtractedPerson,
+    LLMNotConfigured,
+    SourceKind,
+    get_llm_client,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -295,3 +302,176 @@ def llm_status() -> dict[str, object]:
         "configured": is_configured(),
         "model": _DEFAULT_MODEL,
     }
+
+
+# ────────── Extraction (image / PDF upload) ──────────
+
+
+# 10 MB cap for uploaded artifacts. Anthropic vision/document handling
+# starts to lag well before this, but it gives users some headroom for
+# multi-page PDFs. Larger files would have to be processed out-of-band.
+_MAX_UPLOAD_BYTES = 10 * 1024 * 1024
+
+_EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+
+
+class ExtractedPersonOut(BaseModel):
+    """Single proposed person from an extraction call."""
+
+    name: Optional[str]
+    title: Optional[str]
+    team: Optional[str]
+    manager_name: Optional[str]
+    email: Optional[str]
+    confidence: float
+    ready_to_upsert: bool
+
+
+class ExtractionResponseOut(BaseModel):
+    """End-to-end response for `/extract`.
+
+    `committed` is the count actually persisted via ``upsert_person`` —
+    zero unless the caller passed ``commit=true`` and the row had a
+    valid email.
+    """
+
+    model: str
+    people: list[ExtractedPersonOut]
+    committed: int
+    extraction_id: int
+
+
+def _classify_kind(content_type: str) -> tuple[SourceKind, str]:
+    """Map a multipart content-type to (kind, source_label).
+
+    Returns (kind, source_tag) where source_tag is the value to feed
+    `OrgPersonUpsert.source` so downstream attribution stays specific.
+    """
+    ctype = (content_type or "").lower().split(";", 1)[0].strip()
+    if ctype == "application/pdf":
+        return "pdf", "pdf_upload"
+    if ctype.startswith("image/"):
+        return "image", "image_upload"
+    raise HTTPException(
+        status_code=415,
+        detail=(
+            f"Unsupported file type {content_type!r}. "
+            "Upload an image (image/*) or a PDF (application/pdf)."
+        ),
+    )
+
+
+def _is_valid_email(value: Optional[str]) -> bool:
+    if not value:
+        return False
+    return bool(_EMAIL_RE.match(value.strip()))
+
+
+def _to_extracted_out(person: ExtractedPerson) -> ExtractedPersonOut:
+    return ExtractedPersonOut(
+        name=person.name,
+        title=person.title,
+        team=person.team,
+        manager_name=person.manager_name,
+        email=person.email,
+        confidence=person.confidence,
+        ready_to_upsert=_is_valid_email(person.email),
+    )
+
+
+@router.post(
+    "/extract",
+    response_model=ExtractionResponseOut,
+    operation_id="extractPeopleFromUpload",
+)
+async def extract_people_from_upload(
+    session: session_dependency,
+    file: UploadFile = File(...),
+    customer_id: Optional[str] = Form(default=None),
+    commit: bool = Form(default=False),
+) -> ExtractionResponseOut:
+    """Extract people from an image or PDF upload.
+
+    `commit=false` returns the proposed records for review; `commit=true`
+    immediately upserts those with a valid email. Either way an
+    `OrgExtraction` audit row is written.
+    """
+    raw = await file.read()
+    if len(raw) > _MAX_UPLOAD_BYTES:
+        raise HTTPException(
+            status_code=413,
+            detail=(
+                f"File is too large ({len(raw)} bytes). "
+                f"Limit is {_MAX_UPLOAD_BYTES} bytes (~10 MB)."
+            ),
+        )
+    if not raw:
+        raise HTTPException(status_code=400, detail="Uploaded file is empty.")
+
+    kind, source_tag = _classify_kind(file.content_type or "")
+    media_type = file.content_type or (
+        "application/pdf" if kind == "pdf" else "image/png"
+    )
+    customer_hint = (customer_id or None) and customer_id.strip() or None
+
+    client = get_llm_client()
+    try:
+        result = client.extract_people(
+            kind=kind,
+            content=raw,
+            media_type=media_type,
+            customer_hint=customer_hint,
+        )
+    except LLMNotConfigured as exc:
+        # Make the remediation path explicit so the UI can route the
+        # user straight to the Connect modal.
+        raise HTTPException(
+            status_code=503,
+            detail={
+                "message": str(exc),
+                "remediation": "Connect an Anthropic API key.",
+                "endpoint": "/api/ontology/llm-key",
+            },
+        ) from exc
+
+    proposed = [_to_extracted_out(p) for p in result.people]
+
+    committed = 0
+    if commit:
+        for person in result.people:
+            if not _is_valid_email(person.email):
+                continue
+            assert person.email is not None  # narrowed by _is_valid_email
+            upsert_person(
+                session,
+                OrgPersonUpsert(
+                    email=person.email.strip().lower(),
+                    name=person.name,
+                    title=person.title,
+                    team=person.team,
+                    customer_id=customer_hint,
+                    source=source_tag,
+                    extraction_confidence=person.confidence,
+                ),
+            )
+            committed += 1
+
+    extraction = OrgExtraction(
+        source_type=kind,
+        source_label=file.filename,
+        customer_id=customer_hint,
+        person_count=len(result.people),
+        raw_response=result.raw_response or None,
+        model=result.model,
+    )
+    session.add(extraction)
+    session.commit()
+    session.refresh(extraction)
+
+    assert extraction.id is not None  # populated by commit/refresh
+    return ExtractionResponseOut(
+        model=result.model,
+        people=proposed,
+        committed=committed,
+        extraction_id=extraction.id,
+    )
