@@ -331,7 +331,11 @@ export function buildSwimlaneLayout(
       source: p.reportsTo!,
       target: p.id,
       type: "smoothstep",
-      style: { stroke: "var(--border)", strokeWidth: 1 },
+      style: {
+        stroke: "var(--muted-foreground)",
+        strokeWidth: 1.25,
+        strokeOpacity: 0.45,
+      },
       sourceHandle: "src",
       targetHandle: "tgt",
     }));
