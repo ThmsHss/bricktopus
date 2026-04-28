@@ -85,6 +85,13 @@ export interface EmailExcerpt {
 export interface HTTPValidationError {
     detail?: ValidationError[];
 }
+export interface LLMKeyIn {
+    api_key: string;
+}
+export interface LLMKeyOut {
+    detail: string;
+    ok: boolean;
+}
 export interface MeetingBriefingItem {
     attendees: AttendeeBriefing[];
     calendar_url: string | null;
@@ -123,6 +130,39 @@ export interface NotionExcerpt {
     last_edited_at: string;
     title: string;
     url: string | null;
+}
+export interface OrgPersonListOut {
+    persons: OrgPersonOut[];
+    total: number;
+}
+export interface OrgPersonOut {
+    customer_id: string | null;
+    domain: string;
+    email: string;
+    extraction_confidence: number | null;
+    first_seen_at: string;
+    is_internal: boolean;
+    last_extracted_at: string | null;
+    last_seen_at: string;
+    linkedin_url: string | null;
+    manager_email: string | null;
+    name: string | null;
+    notes: string | null;
+    sources: string[];
+    team: string | null;
+    title: string | null;
+}
+export interface OrgPersonUpsert {
+    customer_id?: string | null;
+    email: string;
+    extraction_confidence?: number | null;
+    linkedin_url?: string | null;
+    manager_email?: string | null;
+    name?: string | null;
+    notes?: string | null;
+    source?: string;
+    team?: string | null;
+    title?: string | null;
 }
 export interface SalesforceConnectIn {
     instance_url: string;
@@ -381,6 +421,261 @@ export function useUpsertOntologyClassification(options?: {
 }) {
     return useMutation({
         mutationFn: (vars)=>upsertOntologyClassification(vars.params, vars.data),
+        ...options?.mutation
+    });
+}
+export const connectLlmKey = async (data: LLMKeyIn, options?: RequestInit): Promise<{
+    data: LLMKeyOut;
+}> =>{
+    const res = await fetch("/api/ontology/llm-key", {
+        ...options,
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            ...options?.headers
+        },
+        body: JSON.stringify(data)
+    });
+    if (!res.ok) {
+        const body = await res.text();
+        let parsed: unknown;
+        try {
+            parsed = JSON.parse(body);
+        } catch  {
+            parsed = body;
+        }
+        throw new ApiError(res.status, res.statusText, parsed);
+    }
+    return {
+        data: await res.json()
+    };
+};
+export function useConnectLlmKey(options?: {
+    mutation?: UseMutationOptions<{
+        data: LLMKeyOut;
+    }, ApiError, LLMKeyIn>;
+}) {
+    return useMutation({
+        mutationFn: (data)=>connectLlmKey(data),
+        ...options?.mutation
+    });
+}
+export const disconnectLlmKey = async (options?: RequestInit): Promise<{
+    data: LLMKeyOut;
+}> =>{
+    const res = await fetch("/api/ontology/llm-key", {
+        ...options,
+        method: "DELETE"
+    });
+    if (!res.ok) {
+        const body = await res.text();
+        let parsed: unknown;
+        try {
+            parsed = JSON.parse(body);
+        } catch  {
+            parsed = body;
+        }
+        throw new ApiError(res.status, res.statusText, parsed);
+    }
+    return {
+        data: await res.json()
+    };
+};
+export function useDisconnectLlmKey(options?: {
+    mutation?: UseMutationOptions<{
+        data: LLMKeyOut;
+    }, ApiError, void>;
+}) {
+    return useMutation({
+        mutationFn: ()=>disconnectLlmKey(),
+        ...options?.mutation
+    });
+}
+export const llmStatus = async (options?: RequestInit): Promise<{
+    data: Record<string, unknown>;
+}> =>{
+    const res = await fetch("/api/ontology/llm-status", {
+        ...options,
+        method: "GET"
+    });
+    if (!res.ok) {
+        const body = await res.text();
+        let parsed: unknown;
+        try {
+            parsed = JSON.parse(body);
+        } catch  {
+            parsed = body;
+        }
+        throw new ApiError(res.status, res.statusText, parsed);
+    }
+    return {
+        data: await res.json()
+    };
+};
+export const llmStatusKey = ()=>{
+    return [
+        "/api/ontology/llm-status"
+    ] as const;
+};
+export function useLlmStatus<TData = {
+    data: Record<string, unknown>;
+}>(options?: {
+    query?: Omit<UseQueryOptions<{
+        data: Record<string, unknown>;
+    }, ApiError, TData>, "queryKey" | "queryFn">;
+}) {
+    return useQuery({
+        queryKey: llmStatusKey(),
+        queryFn: ()=>llmStatus(),
+        ...options?.query
+    });
+}
+export function useLlmStatusSuspense<TData = {
+    data: Record<string, unknown>;
+}>(options?: {
+    query?: Omit<UseSuspenseQueryOptions<{
+        data: Record<string, unknown>;
+    }, ApiError, TData>, "queryKey" | "queryFn">;
+}) {
+    return useSuspenseQuery({
+        queryKey: llmStatusKey(),
+        queryFn: ()=>llmStatus(),
+        ...options?.query
+    });
+}
+export interface ListOrgPersonsParams {
+    customer_id?: string | null;
+    include_internal?: boolean;
+}
+export const listOrgPersons = async (params?: ListOrgPersonsParams, options?: RequestInit): Promise<{
+    data: OrgPersonListOut;
+}> =>{
+    const searchParams = new URLSearchParams();
+    if (params?.customer_id != null) searchParams.set("customer_id", String(params?.customer_id));
+    if (params?.include_internal != null) searchParams.set("include_internal", String(params?.include_internal));
+    const queryString = searchParams.toString();
+    const url = queryString ? `/api/ontology/persons?${queryString}` : "/api/ontology/persons";
+    const res = await fetch(url, {
+        ...options,
+        method: "GET"
+    });
+    if (!res.ok) {
+        const body = await res.text();
+        let parsed: unknown;
+        try {
+            parsed = JSON.parse(body);
+        } catch  {
+            parsed = body;
+        }
+        throw new ApiError(res.status, res.statusText, parsed);
+    }
+    return {
+        data: await res.json()
+    };
+};
+export const listOrgPersonsKey = (params?: ListOrgPersonsParams)=>{
+    return [
+        "/api/ontology/persons",
+        params
+    ] as const;
+};
+export function useListOrgPersons<TData = {
+    data: OrgPersonListOut;
+}>(options?: {
+    params?: ListOrgPersonsParams;
+    query?: Omit<UseQueryOptions<{
+        data: OrgPersonListOut;
+    }, ApiError, TData>, "queryKey" | "queryFn">;
+}) {
+    return useQuery({
+        queryKey: listOrgPersonsKey(options?.params),
+        queryFn: ()=>listOrgPersons(options?.params),
+        ...options?.query
+    });
+}
+export function useListOrgPersonsSuspense<TData = {
+    data: OrgPersonListOut;
+}>(options?: {
+    params?: ListOrgPersonsParams;
+    query?: Omit<UseSuspenseQueryOptions<{
+        data: OrgPersonListOut;
+    }, ApiError, TData>, "queryKey" | "queryFn">;
+}) {
+    return useSuspenseQuery({
+        queryKey: listOrgPersonsKey(options?.params),
+        queryFn: ()=>listOrgPersons(options?.params),
+        ...options?.query
+    });
+}
+export const upsertOrgPerson = async (data: OrgPersonUpsert, options?: RequestInit): Promise<{
+    data: OrgPersonOut;
+}> =>{
+    const res = await fetch("/api/ontology/persons", {
+        ...options,
+        method: "PUT",
+        headers: {
+            "Content-Type": "application/json",
+            ...options?.headers
+        },
+        body: JSON.stringify(data)
+    });
+    if (!res.ok) {
+        const body = await res.text();
+        let parsed: unknown;
+        try {
+            parsed = JSON.parse(body);
+        } catch  {
+            parsed = body;
+        }
+        throw new ApiError(res.status, res.statusText, parsed);
+    }
+    return {
+        data: await res.json()
+    };
+};
+export function useUpsertOrgPerson(options?: {
+    mutation?: UseMutationOptions<{
+        data: OrgPersonOut;
+    }, ApiError, OrgPersonUpsert>;
+}) {
+    return useMutation({
+        mutationFn: (data)=>upsertOrgPerson(data),
+        ...options?.mutation
+    });
+}
+export interface DeleteOrgPersonParams {
+    email: string;
+}
+export const deleteOrgPerson = async (params: DeleteOrgPersonParams, options?: RequestInit): Promise<{
+    data: Record<string, boolean>;
+}> =>{
+    const res = await fetch(`/api/ontology/persons/${params.email}`, {
+        ...options,
+        method: "DELETE"
+    });
+    if (!res.ok) {
+        const body = await res.text();
+        let parsed: unknown;
+        try {
+            parsed = JSON.parse(body);
+        } catch  {
+            parsed = body;
+        }
+        throw new ApiError(res.status, res.statusText, parsed);
+    }
+    return {
+        data: await res.json()
+    };
+};
+export function useDeleteOrgPerson(options?: {
+    mutation?: UseMutationOptions<{
+        data: Record<string, boolean>;
+    }, ApiError, {
+        params: DeleteOrgPersonParams;
+    }>;
+}) {
+    return useMutation({
+        mutationFn: (vars)=>deleteOrgPerson(vars.params),
         ...options?.mutation
     });
 }
