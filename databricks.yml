@@ -1,0 +1,22 @@
+bundle:
+  name: bricktopus
+
+sync:
+  include:
+    - .build
+
+artifacts:
+  default:
+    build: apx build
+
+resources:
+  apps:
+    bricktopus-app:
+      name: "bricktopus"
+      description: "bricktopus created with apx"
+      source_code_path: ./.build
+
+targets:
+  dev:
+    mode: development
+    default: true

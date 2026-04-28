@@ -1,0 +1,1 @@
+command: ["uvicorn", "bricktopus.backend.app:app", "--workers", "2"]
