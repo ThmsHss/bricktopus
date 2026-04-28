@@ -8,6 +8,7 @@ import { SpendCard } from "@/components/overview/spend-card";
 import { EngagementCard } from "@/components/overview/engagement-card";
 import { AnomaliesCard } from "@/components/overview/anomalies-card";
 import { TasksCard } from "@/components/overview/tasks-card";
+import { TimeSpentCard } from "@/components/overview/time-spent-card";
 import { OverviewSkeleton } from "@/components/overview/overview-skeleton";
 
 export const Route = createFileRoute("/_sidebar/overview")({
@@ -41,6 +42,7 @@ function OverviewRoute() {
         customer={data.customer}
         generatedAt={data.briefing.generatedAt}
       />
+      <TimeSpentCard />
       <div className="grid grid-cols-12 gap-4">
         <div className="col-span-12 lg:col-span-8">
           <BriefingCard briefing={data.briefing} />

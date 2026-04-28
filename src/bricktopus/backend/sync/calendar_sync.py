@@ -11,6 +11,7 @@ from sqlmodel import Session, select
 from ..cache.sources import CalendarEvent, SyncState
 from ..mcp_clients.google_calendar import GoogleCalendarClient
 from ..services.attribution import attribute
+from ..services.meeting_classifier import classify_meeting_type
 
 
 @dataclass(frozen=True)
@@ -48,6 +49,12 @@ def sync_calendar(
             title=evt.summary,
             attendee_emails=evt.attendee_emails,
         )
+        meeting_type = classify_meeting_type(
+            title=evt.summary,
+            attendee_emails=list(evt.attendee_emails),
+            description=evt.description,
+            self_organized=evt.self_organized,
+        )
 
         existing = session.get(CalendarEvent, evt.id)
         duration = max(0, int((evt.ends_at - evt.starts_at).total_seconds() // 60))
@@ -74,17 +81,20 @@ def sync_calendar(
                     attendee_count=len(evt.attendee_emails),
                     raw_payload=json.dumps({"summary": evt.summary}),
                     customer_id=attribution.customer_id if attribution else None,
+                    meeting_type=meeting_type,
                     classification_source="rule" if attribution else None,
                     fetched_at=datetime.now(tz=timezone.utc),
                 )
             )
             inserted += 1
         else:
-            # Don't overwrite a manually-set customer_id
+            # Don't overwrite a manually-set classification (covers both
+            # the customer mapping and the meeting-type label).
             if existing.classification_source != "manual":
                 existing.customer_id = (
                     attribution.customer_id if attribution else None
                 )
+                existing.meeting_type = meeting_type
                 existing.classification_source = "rule" if attribution else None
             existing.summary = evt.summary
             existing.description = evt.description
