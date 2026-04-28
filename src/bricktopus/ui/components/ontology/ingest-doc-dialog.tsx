@@ -42,13 +42,16 @@ export function IngestDocDialog({ trigger }: IngestDocDialogProps) {
   const ingest = useOntologyIngest();
 
   // Reset everything when the dialog closes.
+  // `ingest` is intentionally excluded from deps — TanStack's mutation
+  // object changes identity every render, so depending on it would loop.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (!open) {
       setUrlOrId("");
       setPreview(null);
       ingest.reset();
     }
-  }, [open, ingest]);
+  }, [open]);
 
   // Keep customer in sync when the active customer changes externally.
   useEffect(() => {
