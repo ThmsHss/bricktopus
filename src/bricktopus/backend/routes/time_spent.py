@@ -27,10 +27,13 @@ router = APIRouter(prefix="/api/time-spent", tags=["time-spent"])
 
 Bucket = Literal["week", "month"]
 
-# Events with these response statuses count toward "time I actually spent".
-# Treat None/empty as accepted — that's how mock data and most calendars
-# represent self-organized blocks.
-ACCEPTED_RESPONSES = frozenset({"accepted", "needsAction", None})
+# An event counts as "time you actually spent" only when:
+#   - you accepted it explicitly, OR
+#   - you organized it yourself (self_organized=True) AND no other attendees
+#     dispute that (i.e. response_status in {None, "accepted"}).
+# `needsAction` events are invites that were never confirmed — treating them
+# as attended balloons the totals with stuff you never went to.
+_ACCEPTED_LITERAL = "accepted"
 
 # Cap any single event at 4 hours. Real meetings rarely run that long;
 # anything bigger is usually a focus block or a misused calendar entry.
@@ -56,12 +59,45 @@ _BLOCKER_PATTERNS = (
     "busy",
     "blocked",
     "blocker",
+    "personal work",
+    "personal time",
+    "summarize the day",
+    "stand-in",
+    "stand in",
+    "travel",
+    "train to",
+    "flight",
+    "drive home",
+    "drive to",
+    "commute",
+    "review consumption",
+    "check release notes",
 )
 
 
 def _is_blocker(summary: str) -> bool:
     s = (summary or "").lower()
     return any(p in s for p in _BLOCKER_PATTERNS)
+
+
+def _did_attend(evt) -> bool:  # noqa: ANN001 — duck-typed CalendarEvent
+    """Did the user actually attend this event (not just get invited)?
+
+    True for explicit "accepted", or for self-organized blocks with no
+    competing attendees. False for "declined", "tentative", and the very
+    common "needsAction" (silently invited, never confirmed).
+    """
+    status = (evt.response_status or "").lower() or None
+    if status == _ACCEPTED_LITERAL:
+        return True
+    if status in {"declined", "tentative", "needsaction"}:
+        return False
+    # No status set: count it only when it's clearly your own block.
+    if evt.self_organized:
+        return True
+    if evt.attendee_count <= 0:
+        return True
+    return False
 
 INTERNAL_CUSTOMER_ID = "internal"
 INTERNAL_CUSTOMER_NAME = "Internal · Databricks"
@@ -208,9 +244,9 @@ def get_time_spent(
     for evt in events:
         if evt.duration_minutes <= 0:
             continue
-        if evt.response_status not in ACCEPTED_RESPONSES:
-            continue
         if evt.is_all_day:
+            continue
+        if not _did_attend(evt):
             continue
         # Skip generic blockers ("No Meeting Friday", "OOO", "lunch", …) so
         # empty time isn't booked as work time.
