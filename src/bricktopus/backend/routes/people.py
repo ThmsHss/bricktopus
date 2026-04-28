@@ -212,6 +212,43 @@ def delete_person(
     return {"ok": True}
 
 
+# ────────── Cache scan ──────────
+
+
+class ScanResultOut(BaseModel):
+    """Counts emitted by a deterministic OrgPerson scan run."""
+
+    calendar_events_visited: int
+    email_threads_visited: int
+    persons_inserted: int
+    persons_updated: int
+    started_at: datetime
+    finished_at: datetime
+
+
+@router.post(
+    "/scan",
+    response_model=ScanResultOut,
+    operation_id="scanOntology",
+)
+def scan_ontology(session: session_dependency) -> ScanResultOut:
+    """Walk the cache and upsert OrgPerson from observed participants.
+
+    Deterministic, idempotent, no LLM calls. Safe to run repeatedly.
+    """
+    from ..services.people_scan import scan_people
+
+    result = scan_people(session=session)
+    return ScanResultOut(
+        calendar_events_visited=result.calendar_events_visited,
+        email_threads_visited=result.email_threads_visited,
+        persons_inserted=result.persons_inserted,
+        persons_updated=result.persons_updated,
+        started_at=result.started_at,
+        finished_at=result.finished_at,
+    )
+
+
 # ────────── LLM key connect ──────────
 
 
