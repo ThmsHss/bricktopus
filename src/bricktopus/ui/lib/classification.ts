@@ -48,17 +48,17 @@ interface ClassificationMeta {
 export const CLASSIFICATION_META: Record<Classification, ClassificationMeta> = {
   champion: {
     label: "Champion",
-    tone: "border-success/35 bg-success/10 text-success",
-    solid: "bg-success text-success-foreground border-success",
+    tone: "border-[oklch(0.62_0.15_145/0.4)] bg-[oklch(0.62_0.15_145/0.12)] text-[oklch(0.42_0.15_145)] dark:text-[oklch(0.78_0.15_145)]",
+    solid: "bg-[oklch(0.62_0.15_145)] text-white border-[oklch(0.55_0.15_145)]",
   },
   supportive: {
     label: "Supportive",
-    tone: "border-primary/35 bg-primary/10 text-primary",
-    solid: "bg-primary text-primary-foreground border-primary",
+    tone: "border-chart-2/40 bg-chart-2/12 text-chart-2",
+    solid: "bg-chart-2 text-white border-chart-2",
   },
   blocking: {
     label: "Blocking",
     tone: "border-destructive/40 bg-destructive/10 text-destructive",
-    solid: "bg-destructive text-destructive-foreground border-destructive",
+    solid: "bg-destructive text-white border-destructive",
   },
 };

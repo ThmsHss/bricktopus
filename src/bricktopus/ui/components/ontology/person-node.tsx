@@ -40,7 +40,7 @@ export function PersonNode({ data }: { data: PersonNodeData }) {
         selected && "border-primary shadow-md ring-1 ring-primary/40",
       )}
     >
-      <Handle type="target" position={Position.Top} className="!bg-border" />
+      <Handle id="tgt" type="target" position={Position.Top} className="!bg-border" />
       <div className="flex flex-col gap-2 p-3">
         <div className="min-w-0">
           <div className="truncate text-sm font-semibold leading-tight">
@@ -75,7 +75,7 @@ export function PersonNode({ data }: { data: PersonNodeData }) {
           )}
         </div>
       </div>
-      <Handle type="source" position={Position.Bottom} className="!bg-border" />
+      <Handle id="src" type="source" position={Position.Bottom} className="!bg-border" />
     </div>
   );
 }
