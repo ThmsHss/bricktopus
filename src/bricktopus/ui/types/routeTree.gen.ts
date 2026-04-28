@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './../routes/__root'
 import { Route as SidebarRouteRouteImport } from './../routes/_sidebar/route'
 import { Route as IndexRouteImport } from './../routes/index'
 import { Route as SidebarTasksRouteImport } from './../routes/_sidebar/tasks'
+import { Route as SidebarPlanMyDayRouteImport } from './../routes/_sidebar/plan-my-day'
 import { Route as SidebarOverviewRouteImport } from './../routes/_sidebar/overview'
 import { Route as SidebarOntologyRouteImport } from './../routes/_sidebar/ontology'
 import { Route as SidebarMeetingsRouteImport } from './../routes/_sidebar/meetings'
@@ -30,6 +31,11 @@ const IndexRoute = IndexRouteImport.update({
 const SidebarTasksRoute = SidebarTasksRouteImport.update({
   id: '/tasks',
   path: '/tasks',
+  getParentRoute: () => SidebarRouteRoute,
+} as any)
+const SidebarPlanMyDayRoute = SidebarPlanMyDayRouteImport.update({
+  id: '/plan-my-day',
+  path: '/plan-my-day',
   getParentRoute: () => SidebarRouteRoute,
 } as any)
 const SidebarOverviewRoute = SidebarOverviewRouteImport.update({
@@ -65,6 +71,7 @@ export interface FileRoutesByFullPath {
   '/meetings': typeof SidebarMeetingsRoute
   '/ontology': typeof SidebarOntologyRoute
   '/overview': typeof SidebarOverviewRoute
+  '/plan-my-day': typeof SidebarPlanMyDayRoute
   '/tasks': typeof SidebarTasksRoute
 }
 export interface FileRoutesByTo {
@@ -74,6 +81,7 @@ export interface FileRoutesByTo {
   '/meetings': typeof SidebarMeetingsRoute
   '/ontology': typeof SidebarOntologyRoute
   '/overview': typeof SidebarOverviewRoute
+  '/plan-my-day': typeof SidebarPlanMyDayRoute
   '/tasks': typeof SidebarTasksRoute
 }
 export interface FileRoutesById {
@@ -85,6 +93,7 @@ export interface FileRoutesById {
   '/_sidebar/meetings': typeof SidebarMeetingsRoute
   '/_sidebar/ontology': typeof SidebarOntologyRoute
   '/_sidebar/overview': typeof SidebarOverviewRoute
+  '/_sidebar/plan-my-day': typeof SidebarPlanMyDayRoute
   '/_sidebar/tasks': typeof SidebarTasksRoute
 }
 export interface FileRouteTypes {
@@ -96,6 +105,7 @@ export interface FileRouteTypes {
     | '/meetings'
     | '/ontology'
     | '/overview'
+    | '/plan-my-day'
     | '/tasks'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -105,6 +115,7 @@ export interface FileRouteTypes {
     | '/meetings'
     | '/ontology'
     | '/overview'
+    | '/plan-my-day'
     | '/tasks'
   id:
     | '__root__'
@@ -115,6 +126,7 @@ export interface FileRouteTypes {
     | '/_sidebar/meetings'
     | '/_sidebar/ontology'
     | '/_sidebar/overview'
+    | '/_sidebar/plan-my-day'
     | '/_sidebar/tasks'
   fileRoutesById: FileRoutesById
 }
@@ -144,6 +156,13 @@ declare module '@tanstack/react-router' {
       path: '/tasks'
       fullPath: '/tasks'
       preLoaderRoute: typeof SidebarTasksRouteImport
+      parentRoute: typeof SidebarRouteRoute
+    }
+    '/_sidebar/plan-my-day': {
+      id: '/_sidebar/plan-my-day'
+      path: '/plan-my-day'
+      fullPath: '/plan-my-day'
+      preLoaderRoute: typeof SidebarPlanMyDayRouteImport
       parentRoute: typeof SidebarRouteRoute
     }
     '/_sidebar/overview': {
@@ -190,6 +209,7 @@ interface SidebarRouteRouteChildren {
   SidebarMeetingsRoute: typeof SidebarMeetingsRoute
   SidebarOntologyRoute: typeof SidebarOntologyRoute
   SidebarOverviewRoute: typeof SidebarOverviewRoute
+  SidebarPlanMyDayRoute: typeof SidebarPlanMyDayRoute
   SidebarTasksRoute: typeof SidebarTasksRoute
 }
 
@@ -199,6 +219,7 @@ const SidebarRouteRouteChildren: SidebarRouteRouteChildren = {
   SidebarMeetingsRoute: SidebarMeetingsRoute,
   SidebarOntologyRoute: SidebarOntologyRoute,
   SidebarOverviewRoute: SidebarOverviewRoute,
+  SidebarPlanMyDayRoute: SidebarPlanMyDayRoute,
   SidebarTasksRoute: SidebarTasksRoute,
 }
 
