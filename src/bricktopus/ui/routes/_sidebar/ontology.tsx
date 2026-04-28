@@ -1,8 +1,10 @@
 import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
-import { AlertCircle, Network } from "lucide-react";
+import { AlertCircle, Loader2, Network, Scan } from "lucide-react";
+import { toast } from "sonner";
 import { useOntology } from "@/hooks/use-overview";
 import { useClassifications } from "@/hooks/use-classifications";
+import { useScanPeople } from "@/hooks/use-people";
 import {
   OntologyCanvas,
   type OntologyLayers,
@@ -11,6 +13,7 @@ import { LayerToggles } from "@/components/ontology/layer-toggles";
 import { DetailPanel } from "@/components/ontology/detail-panel";
 import { GapPanel } from "@/components/ontology/gap-panel";
 import { PeerPanel } from "@/components/ontology/peer-panel";
+import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Sheet,
@@ -25,11 +28,27 @@ export const Route = createFileRoute("/_sidebar/ontology")({
 function OntologyRoute() {
   const { data, isPending, error } = useOntology();
   const { classifications } = useClassifications();
+  const scan = useScanPeople();
   const [layers, setLayers] = useState<OntologyLayers>({
     useCases: false,
     meetingNotes: false,
   });
   const [selectedId, setSelectedId] = useState<string | null>(null);
+
+  const handleScan = () => {
+    scan.mutate(undefined, {
+      onSuccess: (result) => {
+        toast.success("Ontology scan complete", {
+          description: `${result.persons_inserted} new · ${result.persons_updated} updated · ${result.calendar_events_visited} events + ${result.email_threads_visited} threads`,
+        });
+      },
+      onError: (err) => {
+        toast.error("Scan failed", {
+          description: err instanceof Error ? err.message : String(err),
+        });
+      },
+    });
+  };
 
   if (isPending) return <OntologyLoading />;
 
@@ -58,9 +77,25 @@ function OntologyRoute() {
           <Network className="h-3.5 w-3.5" />
           Customer ontology
         </div>
-        <h1 className="font-display text-4xl tracking-tight leading-none">
-          Ontology
-        </h1>
+        <div className="flex items-end justify-between gap-4">
+          <h1 className="font-display text-4xl tracking-tight leading-none">
+            Ontology
+          </h1>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleScan}
+            disabled={scan.isPending}
+            className="gap-2"
+          >
+            {scan.isPending ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <Scan className="h-3.5 w-3.5" />
+            )}
+            {scan.isPending ? "Scanning…" : "Scan from cache"}
+          </Button>
+        </div>
         <p className="max-w-3xl text-sm text-muted-foreground">
           People grouped by Central IT and Business Unit, with workspaces
           mapped into the use cases they run on. Toggle layers to surface use

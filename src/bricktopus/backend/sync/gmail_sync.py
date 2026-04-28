@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass
 from datetime import datetime, timezone
 
@@ -10,6 +11,9 @@ from sqlmodel import Session
 from ..cache.sources import EmailThread, SyncState
 from ..mcp_clients.gmail import GmailClient
 from ..services.attribution import attribute, seed_aliases
+from ..services.people_scan import scan_people
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -79,6 +83,13 @@ def sync_gmail(
         session.add(state)
 
     session.commit()
+
+    # Best-effort: keep OrgPerson in sync with newly cached threads.
+    try:
+        scan_people(session=session)
+    except Exception as exc:  # pragma: no cover - defensive
+        logger.warning("people scan after gmail sync failed: %s", exc)
+
     return SyncResult(
         inserted=inserted,
         updated=updated,

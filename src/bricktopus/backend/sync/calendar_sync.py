@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import logging
 from datetime import datetime, timezone
 from dataclasses import dataclass
 
@@ -12,6 +13,9 @@ from ..cache.sources import CalendarEvent, SyncState
 from ..mcp_clients.google_calendar import GoogleCalendarClient
 from ..services.attribution import attribute, seed_aliases
 from ..services.meeting_classifier import classify_meeting_type
+from ..services.people_scan import scan_people
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -151,6 +155,15 @@ def sync_calendar(
         session.add(state)
 
     session.commit()
+
+    # Best-effort: refresh OrgPerson rows from the cache. The upsert helper
+    # is idempotent so running over the full cache stays cheap and keeps
+    # provenance / last_seen_at fresh. A failure here must not break the
+    # primary calendar sync.
+    try:
+        scan_people(session=session)
+    except Exception as exc:  # pragma: no cover - defensive
+        logger.warning("people scan after calendar sync failed: %s", exc)
 
     return SyncResult(
         inserted=inserted,
